@@ -21,7 +21,6 @@ int main(int argc, char **argv) {
       break;
 
     swiWaitForVBlank();
-
     consoleSetCursor(NULL, 0, 8);
     printf("count = %3d", count);
   }
