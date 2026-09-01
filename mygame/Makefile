@@ -19,7 +19,7 @@ GAME_AUTHOR	:= blocksds.skylyrac.net
 GAME_ICON	:= icon.gif
 
 # A compile_commands.json file is created if this is set to 1
-COMPDB		:= 0
+COMPDB		:= 1
 
 # DLDI and internal SD slot of DSi
 # --------------------------------
