@@ -5,23 +5,23 @@
 # このMakefileの役割
 # =============================================================================
 # mygame/source以下のCファイルとgraphics/data/audio以下の素材を変換・コンパイルし、
-# Nintendo DSで実行できるmygame.ndsを生成します。
+# Nintendo DSで実行できるmygame.ndsを生成する。
 #
-# 班員が通常変更する可能性があるのは、主に次の設定です。
-# - NAME / GAME_* : 出力ファイル名とROMに埋め込むタイトル情報
-# - SOURCEDIRS    : Cソースを置くフォルダ
-# - GFXDIRS       : PNGと.gritを置く画像フォルダ
-# - BINDIRS       : 画像以外のバイナリデータ用フォルダ
-# - AUDIODIRS     : 効果音・BGM用フォルダ
+# （重要！）主に今後変更する可能性があるのは、次の設定。
+#  NAME / GAME_* : 出力ファイル名とROMに埋め込むタイトル情報
+#  SOURCEDIRS    : Cソースを置くフォルダ
+#  GFXDIRS       : PNGと.gritを置く画像フォルダ
+#  BINDIRS       : 画像以外のバイナリデータ用フォルダ
+#  AUDIODIRS     : 効果音・BGM用フォルダ
 #
-# 下半分はBlocksDS標準テンプレート由来の汎用ビルドルールです。
-# ライブラリ追加や特殊な変換が必要になるまでは、基本的に変更しません。
-# `make`は変更されたファイルをビルドし、`make clean`は生成物を削除します。
+# 下半分はBlocksDS標準テンプレート由来の汎用ビルドルール。
+# ライブラリ追加や特殊な変換が必要になるまでは、基本的に変更しない。
+# `make`は変更されたファイルをビルドし、`make clean`は生成物を削除する
 #
 # 参考資料:
-# - 事前資料 1章「ソースコードが.ndsになるまで」
-# - 事前資料 12章「開発環境」、特に12.5と12.6
-# - BlocksDS公式 Backgrounds（PNGと.gritのビルド時変換）
+#  事前資料 1章「ソースコードが.ndsになるまで」
+#  事前資料 12章「開発環境」、特に12.5と12.6
+#  BlocksDS公式 Backgrounds（PNGと.gritのビルド時変換）
 #   https://blocksds.skylyrac.net/tutorial/basic/backgrounds/
 
 export BLOCKSDS			?= /opt/blocksds/core

@@ -2,20 +2,20 @@
  * test_rules.c — DSを起動せずゲームルールを確認するテスト
  * --------------------------------------------------------------------------
  * macOS/Linuxの通常のCコンパイラでgame.c・board.c・unit.cを実行し、
- * 初期配置、移動、攻撃、キャンセル、ターン交代などをassertで確認します。
- * 描画と入力ハードウェアをルールから分離しているため、同じコードをPC上で
- * 素早く検証できます。
+ * 初期配置、移動、攻撃、キャンセル、ターン交代などをassertで確認する。
+ * 描画と入力ハードウェアをルールから分離しているので、同じコードをPC上で
+ * 素早く検証できる。
  *
- * ルールを変更するときは、実装だけでなく対応するテストも更新してください。
- * 既存仕様を意図せず壊していないか確認するため、PR前には必ず実行します。
- * 実行コマンドはmygame/readme.mdに記載しています。
+ * ルールを変更するときは、実装だけでなく対応するテストも更新すること。
+ * 既存仕様を意図せず壊していないか確認するため、PR前には必ず実行する。
+ * 実行コマンドはmygame/readme.mdに記載してある。
  *
  * 参考資料:
- * - 事前資料 3章: テストを目的別の関数へ分割する
- * - 事前資料 4章: Game *を更新関数へ渡す
- * - 事前資料 6章: テスト用のGameInput構造体を作る
- * - 事前資料 11章: assertで期待値を自動確認する
- * - ユニットテストの運用は、事前資料から発展させた内容
+ *  事前資料 3章: テストを目的別の関数へ分割する
+ *  事前資料 4章: Game *を更新関数へ渡す
+ *  事前資料 6章: テスト用のGameInput構造体を作る
+ *  事前資料 11章: assertで期待値を自動確認する
+ *  ユニットテストの運用は、事前資料からネットの参考に発展させた内容
  */
 
 /* assert(条件)がfalseなら、その行でテストを失敗させる標準ヘッダ。 */
@@ -102,7 +102,7 @@ static void testMovementRules(void)
     assert(!boardCanMoveTo(&game, 1, 2, 3));
     assert(!boardCanMoveTo(&game, 1, 3, 4));
     assert(!boardCanMoveTo(&game, 1, 3, 1));
-    /* 横と縦の隣接マスが山でも、空いている斜めへ直接移動できる。 */
+    /* 横と縦の隣接マスが障害物でも、空いている斜めへ直接移動できる。 */
     game.terrain[2][3] = TERRAIN_MOUNTAIN;
     game.terrain[3][2] = TERRAIN_MOUNTAIN;
     assert(boardCanMoveTo(&game, 1, 2, 2));
@@ -113,7 +113,7 @@ static void testMovementRules(void)
     game.units[2].x = 2;
     game.units[2].y = 3;
     assert(boardCanMoveTo(&game, 1, 2, 2));
-    /* 斜めの着地点そのものが山なら移動できない。 */
+    /* 斜めの着地点そのものが障害物なら移動できない。 */
     game.terrain[2][2] = TERRAIN_MOUNTAIN;
     assert(!boardCanMoveTo(&game, 1, 2, 2));
 
@@ -129,7 +129,7 @@ static void testMovementRules(void)
     assert(boardCanMoveTo(&game, 2, 3, 4));
     assert(!boardCanMoveTo(&game, 2, 2, 4));
     assert(!boardCanMoveTo(&game, 2, 3, 1));
-    /* 正面と横が山でも、空いている左前へ直接移動できる。 */
+    /* 正面と横が障害物でも、空いている左前へ直接移動できる。 */
     game.terrain[2][3] = TERRAIN_MOUNTAIN;
     game.terrain[3][2] = TERRAIN_MOUNTAIN;
     assert(boardCanMoveTo(&game, 2, 2, 2));
@@ -182,7 +182,7 @@ static void testAttackRanges(void)
     game.units[3].x = 2;
     game.units[3].y = 3;
     assert(!boardCanAttack(&game, 0, 3));
-    /* 2マス前への攻撃は、間にキャラまたは山があれば届かない。 */
+    /* 2マス前への攻撃は、間にキャラまたは障害物があれば届かない。 */
     game.units[3].x = 3;
     game.units[3].y = 2;
     game.units[1].alive = true;
@@ -210,7 +210,7 @@ static void testAttackRanges(void)
     game.units[3].x = 3;
     game.units[3].y = 3;
     assert(!boardCanAttack(&game, 1, 3));
-    /* 1マス前の横3マスが山でも、2マス前へ飛び越えて攻撃できる。 */
+    /* 1マス前の横3マスが障害物でも、2マス前へ飛び越えて攻撃できる。 */
     game.units[3].y = 2;
     game.terrain[3][2] = TERRAIN_MOUNTAIN;
     game.terrain[3][3] = TERRAIN_MOUNTAIN;
@@ -243,7 +243,7 @@ static void testAttackRanges(void)
     assert(boardCanAttack(&game, 2, 3));
     game.units[3].x = 3;
     assert(!boardCanAttack(&game, 2, 3));
-    /* 横と縦のマスが山でも、斜めの対象には攻撃できる。 */
+    /* 横と縦のマスが障害物でも、斜めの対象には攻撃できる。 */
     game.units[3].x = 2;
     game.units[3].y = 2;
     game.terrain[2][3] = TERRAIN_MOUNTAIN;
@@ -326,7 +326,7 @@ static void makeFocusedUnitWait(Game *game)
     gameUpdate(game, confirmInput());
 }
 
-/* 生存3体全員がWAITした時点でP2へターン交代することを確認する。 */
+/* 生存3体全員がWAITした時点でP2へターン交代することを確認する */
 static void testTurnChangesAfterAllUnitsAct(void)
 {
     Game game;
@@ -366,7 +366,7 @@ static void testUnavailableAttackSelectsWaitOnly(void)
     Game game;
     gameInit(&game);
 
-    /* 初期位置のAには攻撃対象がいないため、移動しない確定後はWAITになる。 */
+    /* 初期位置のAには攻撃対象がいないので、移動しない確定後はWAITになる。 */
     gameUpdate(&game, confirmInput());
     gameUpdate(&game, confirmInput());
     assert(game.phase == PHASE_SELECT_ACTION);
