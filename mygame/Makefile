@@ -11,11 +11,11 @@ ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 # User config
 # ===========
 
-NAME		:= template_arm9
+NAME		:= mygame
 
-GAME_TITLE	:= ARM9 only template
-GAME_SUBTITLE	:= Built with BlocksDS
-GAME_AUTHOR	:= blocksds.skylyrac.net
+GAME_TITLE	:= Tactics MVP
+GAME_SUBTITLE	:= WINC 2026 Summer Camp
+GAME_AUTHOR	:= Team Zero
 GAME_ICON	:= icon.gif
 
 # A compile_commands.json file is created if this is set to 1
