@@ -4,6 +4,11 @@
 合宿の数日間を「DS とゲームの中身」に使えるように、
 **C でつまずく部分を先に潰しておく**ための教科書です。
 
+## チーム0のゲーム用
+
+ゲームのビルド方法・操作方法は [mygame/readme.md](mygame/readme.md) を参照してください。
+
+詳しいゲームルール・ファイル構成・変更方法は [mygame/docs/team-cheatsheet.md](mygame/docs/team-cheatsheet.md) にまとめています。
 ---
 
 ## 対象読者
