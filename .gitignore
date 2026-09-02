@@ -5,3 +5,5 @@ build/
 *.map
 *.dump
 compile_commands.json
+.DS_Store
+mygame/.cache/
