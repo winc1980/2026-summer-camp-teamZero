@@ -2,30 +2,30 @@
  * board.c — 盤面上の移動・攻撃が可能かを判定する
  * --------------------------------------------------------------------------
  * 8×6盤面の境界、地形、ユニットの占有、A/B/Cの移動範囲と攻撃範囲を
- * まとめています。このファイルは判定だけを行い、座標やHPを変更しません。
- * 画像・色・スプライトにも触れないため、見た目を差し替えても盤面ルールは
- * 独立して保たれます。
+ * まとめている。このファイルは判定だけを行い、座標やHPを変更しない。
+ * （重要！）画像・色・スプライトにも触れないため、見た目を差し替えても盤面ルールは
+ * 独立して保たれる。
  *
  * 主な呼び出し関係:
- * - game.cが、移動や攻撃を確定する前にboardCanMoveTo()や
+ *  game.cが、移動や攻撃を確定する前にboardCanMoveTo()や
  *   boardCanAttack()へ問い合わせる
- * - render.cが、移動可能範囲・攻撃可能範囲の表示にも同じ判定を使う
- * - test/test_rules.cが、DSを起動せずルールを自動確認する
+ *  render.cが、移動可能範囲・攻撃可能範囲の表示にも同じ判定を使う
+ *  test/test_rules.cが、DSを起動せずルールを自動確認する
  *
  * 変更時の目安:
- * - A/B/Cの移動範囲・攻撃範囲はboardCanMoveTo()/boardCanAttack()を変更する
- * - 山・川・建造物の通行条件はboardTerrainIsWalkable()から拡張する
- * - terrain[y][x]やunits[i]へ触る前に、必ず境界と配列番号を確認する
- * - ルール変更後はtest/test_rules.cにも対応するケースを追加する
+ *  A/B/Cの移動範囲・攻撃範囲はboardCanMoveTo()/boardCanAttack()を変更する
+ *  山・川・建造物の通行条件はboardTerrainIsWalkable()から拡張する
+ *  terrain[y][x]やunits[i]へ触る前に、必ず境界と配列番号を確認する
+ *  ルール変更後はtest/test_rules.cにも対応するケースを追加する
  *
  * 参考資料:
- * - 事前資料 3章: 小さな判定関数とstatic関数への分割
- * - 事前資料 4章: const Game *で状態をコピーせず読み取る
- * - 事前資料 5章: 2次元配列と境界チェック
- * - 事前資料 6章: Game内のUnit配列とterrain配列
- * - 事前資料 10章: 当たり判定と更新処理の分離
- * - 事前資料 11章: 不正な座標・番号を早めに拒否する
- * - A/B/C固有のルールは本作独自の仕様
+ *  事前資料 3章: 小さな判定関数とstatic関数への分割
+ *  事前資料 4章: const Game *で状態をコピーせず読み取る
+ *  事前資料 5章: 2次元配列と境界チェック
+ *  事前資料 6章: Game内のUnit配列とterrain配列
+ *  事前資料 10章: 当たり判定と更新処理の分離
+ *  事前資料 11章: 不正な座標・番号を早めに拒否する
+ *  A/B/C固有のルールは本作独自の仕様
  */
 
 /* abs()（整数の絶対値）を使うためのC標準ヘッダ。 */
@@ -33,7 +33,7 @@
 
 #include "board.h"
 
-/* 全マスを草原扱いのPLAINで初期化する。 */
+/* 全マスを草原扱いのPLAINで初期化。 */
 void boardInit(Game *game)
 {
     /* Cではループ変数を先に宣言できる。xが列、yが行。 */
@@ -58,10 +58,9 @@ bool boardIsInside(int x, int y)
     return x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT;
 }
 
-/* 将来、山・川・建造物ごとの通行ルールを足す入口。 */
+/* （重要！）将来、山・川・建造物ごとの通行ルールを足す入口。 */
 bool boardTerrainIsWalkable(TerrainType terrain)
 {
-    /* == は比較。=（代入）とは意味が違う。 */
     return terrain == TERRAIN_PLAIN;
 }
 
@@ -87,7 +86,7 @@ int boardUnitAt(const Game *game, int x, int y)
 
 /*
  * staticを付けると、この.cファイル内からだけ呼べる補助関数になる（3章）。
- * 着地点が通行可能で、別ユニットに占有されていないか確認する。
+ * 着地点が通行可能で、別ユニットに占有されていないか確認。
  */
 static bool boardCanLand(const Game *game, int unitIndex, int x, int y)
 {
@@ -105,7 +104,7 @@ static bool boardCanLand(const Game *game, int unitIndex, int x, int y)
 /*
  * A/B/Cの移動可能範囲を一か所で判定する中心関数。
  * 「状態を変更せず、質問にboolで答える」関数なので、描画時のハイライトと
- * Aボタン決定時の両方で同じルールを再利用できる。
+ * Aボタン決定時の両方で同じルールを再利用可能。
  */
 bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y)
 {
@@ -115,7 +114,6 @@ bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y)
     int forward;
 
     /*
-     * || はどれか1つでもtrueならtrueになる論理和。
      * 不正な番号や盤外座標を先に弾き、危険な配列アクセスを防ぐ。
      */
     if (unitIndex < 0 || unitIndex >= UNIT_COUNT || !boardIsInside(x, y)) {
@@ -125,7 +123,7 @@ bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y)
     if (!unit->alive) {
         return false;
     }
-    /* 現在地を選ぶ「移動しない」行動も合法。 */
+    /* 現在地を選ぶ「移動しない」行動も可 */
     if (x == unit->x && y == unit->y) {
         return true;
     }
@@ -148,16 +146,14 @@ bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y)
         case UNIT_B:
             /*
              * Bは斜め四方へ1マス、または正面へ1マス移動する。
-             * 斜め移動では横・縦の隣接マスを調べないため、そこが塞がっていても
+             * 斜め移動では横・縦の隣接マスを調べないため、そこが塞がってても
              * 斜めの着地点が空いていれば直接移動できる。
              */
             return (abs(dx) == 1 && abs(dy) == 1) ||
                    (dx == 0 && dy == forward);
 
         case UNIT_C:
-            /*
-             * Cの「前3マス」は、1マス前の左前・正面・右前を指す。
-             * それに左右1マスと真後ろ1マスを加える。
+            /* Cは前後左右へ1マス、または前方斜め2マスへ移動する。
              * 左前・右前も途中マスを調べず、着地点へ直接移動する。
              */
             return (dy == forward && abs(dx) <= 1) ||

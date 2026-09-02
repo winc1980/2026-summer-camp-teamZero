@@ -1,25 +1,25 @@
 /*
  * japanese_text.c — 下画面へ日本語を描くための最小フォント処理
  * --------------------------------------------------------------------------
- * Cソース内のUTF-8文字列を1文字ずつUnicode番号へ変換し、対応する8×8の
- * ドットデータを探して、16bitビットマップ背景へ描きます。DS標準の文字表示は
- * 日本語をそのまま扱えないため、本作で必要な文字だけを収録しています。
+ * Cソース内のUTF-8文字列を1文字ずつUnicode番号へ変換す、対応する8×8の
+ * ドットデータを探して、16bitビットマップ背景へ描く。DS標準の文字表示は
+ * 日本語をそのまま扱えないから、本作で必要な文字だけを収録。
  *
  * 文字が「?」で表示される場合:
- * 1. 表示したい文字のUnicode番号を確認する
+ * 1. 表示したい文字のUnicode番号を確認
  * 2. glyphs[]へ、その番号と8行分のドットデータを追加する
  * 3. 美咲フォント由来のデータを使う場合はライセンス表記を残す
  *
- * このファイルは文字の変換と描画だけを担当します。文章の内容や表示位置は
- * render.cのrenderStatusScreen()で変更してください。
+ * このファイルは文字の変換と描画だけを担当する。文章の内容や表示位置は
+ * render.cのrenderStatusScreen()で変更して。
  *
  * 参考資料:
- * - 事前資料 2章: uint8_t/uint16_t、符号なし整数、キャスト
- * - 事前資料 4章: const char **、ポインタの移動、VRAMポインタ
- * - 事前資料 5章: '\0'終端文字列、配列、sizeof
- * - 事前資料 7章: static const配列を固定データとして保持する
- * - 事前資料 8章: &, |, <<, >>によるUTF-8とドットの処理
- * - UTF-8デコード、Unicode、フォント描画は事前資料外の実装
+ *  事前資料 2章: uint8_t/uint16_t、符号なし整数、キャスト
+ *  事前資料 4章: const char **、ポインタの移動、VRAMポインタ
+ *  事前資料 5章: '\0'終端文字列、配列、sizeof
+ *  事前資料 7章: static const配列を固定データとして保持する
+ *  事前資料 8章: &, |, <<, >>によるUTF-8とドットの処理
+ *  UTF-8デコード、Unicode、フォント描画は事前資料外の実装
  */
 
 /* size_t（配列サイズを表す符号なし型）を使う標準ヘッダ。 */
@@ -141,11 +141,11 @@ static const JapaneseGlyph glyphs[] = {
 /*
  * textが指すUTF-8先頭1文字をUnicode番号へ変換し、*textを次の文字へ進める。
  * const char **は「文字列ポインタそのものを書き換える」二重ポインタ（4章発展）。
- * このゲームで必要な1〜3バイトUTF-8だけを対象とし、4バイト文字は未対応。
+ * このゲームで必要な1〜3バイトUTF-8だけを対象とす、4バイト文字は未対応。
  */
 static uint16_t decodeUtf8(const char **text)
 {
-    /* charの符号有無に左右されずビット判定するためunsigned char *へキャストする。 */
+    /* charの符号有無に左右されずビット判定するためunsigned char *へキャスト。 */
     const unsigned char *bytes = (const unsigned char *)*text;
     uint16_t codepoint;
 
@@ -162,7 +162,7 @@ static uint16_t decodeUtf8(const char **text)
         *text += 2;
         return codepoint;
     }
-    /* 1110xxxx 10xxxxxx 10xxxxxx の3バイト文字。日本語の多くがここを通る。 */
+    /* 1110xxxx 10xxxxxx 10xxxxxx の3バイト文字。日本語の多くがここ通る。 */
     if ((bytes[0] & 0xF0) == 0xE0 && bytes[1] != 0 && bytes[2] != 0) {
         codepoint = (uint16_t)(((bytes[0] & 0x0F) << 12) |
                                ((bytes[1] & 0x3F) << 6) |
@@ -187,10 +187,10 @@ static const JapaneseGlyph *findGlyph(uint16_t codepoint)
     return findGlyph('?');
 }
 
-/* UTF-8文字列全体を、指定したVRAM座標へ左から順に描画する。 */
+/* UTF-8文字列全体を、指定したVRAM座標へ左から順に描画。 */
 void japaneseTextDraw(u16 *pixels, int x, int y, const char *text, u16 color)
 {
-    /* 改行時に戻る左端を保存する。 */
+    /* 改行時に戻る左端を保存 */
     int originX = x;
 
     /* C文字列の終端'\0'に到達するまで繰り返す（5章）。 */
@@ -201,7 +201,7 @@ void japaneseTextDraw(u16 *pixels, int x, int y, const char *text, u16 color)
         int row;
         int column;
 
-        /* 改行文字はグリフを描かず、xを左端、yを8px下へ移す。 */
+        /* 改行文字はグリフを描かず、xを左端、yを8px下へ移す */
         if (*text == '\n') {
             text++;
             x = originX;
@@ -213,7 +213,7 @@ void japaneseTextDraw(u16 *pixels, int x, int y, const char *text, u16 color)
         glyph = findGlyph(codepoint);
         /* 美咲フォントの英数字は4px幅、日本語は8px幅として詰めて表示する。 */
         width = codepoint < 0x80 ? 4 : 8;
-        /* 8行×文字幅の各bitを調べ、1の画素だけ前景色で書く。背景はclearUi済み。 */
+        /* 8行×文字幅の各bitを調べ、1の画素だけ前景色で書く。背景はclearUi住み。 */
         for (row = 0; row < 8; row++) {
             for (column = 0; column < width; column++) {
                 /*

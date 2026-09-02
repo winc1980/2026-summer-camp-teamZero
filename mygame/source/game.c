@@ -2,19 +2,19 @@
  * game.c — ターン進行とゲーム状態の更新
  * --------------------------------------------------------------------------
  * キャラクター選択、移動先選択、行動選択、攻撃対象選択、ターン交代、
- * ダメージ、勝敗判定を担当します。1フレーム分の入力はgameUpdate()へ渡され、
- * 現在のGamePhaseに応じた処理だけが実行されます。
+ * ダメージ、勝敗判定を担当。1フレーム分の入力はgameUpdate()へ渡され、
+ * 現在のGamePhaseに応じた処理だけが実行される。
  *
  * ファイル間の分担:
- * - game.c  : 「いつ、何を起こすか」を決める
- * - board.c : 「その移動・攻撃が可能か」を判定する
- * - unit.c  : キャラクター1体の初期値を決める
- * - render.c: 更新後の状態を表示する（game.cからは呼ばない）
+ *  game.c  : 「いつ、何を起こすか」を決める
+ *  board.c : 「その移動・攻撃が可能か」を判定する
+ *  unit.c  : キャラクター1体の初期値を決める
+ *  render.c: 更新後の状態を表示する（game.cからは呼ばない）
  *
- * 処理の流れは、おおむね次の順です。
+ * 処理の流れは、おおむね次の順。
  * PHASE_SELECT_UNIT → PHASE_SELECT_MOVE → PHASE_SELECT_ACTION
  * → 必要ならPHASE_SELECT_TARGET → そのキャラの行動終了
- * 自軍の生存キャラが全員行動すると、相手のターンへ移ります。
+ * 自軍の生存キャラが全員行動すると、相手のターンへ移る。
  *
  * 変更時の目安:
  * - 行動順、キャンセル、ターン交代、勝利条件はこのファイルを変更する
@@ -23,18 +23,18 @@
  * - phaseを追加した場合はgameUpdate()と表示側render.cの両方を確認する
  *
  * 参考資料:
- * - 事前資料 3章: static関数、引数、戻り値による処理分割
- * - 事前資料 4章: Game *を通して同じ試合状態を更新する
- * - 事前資料 5章: units[]、message[]、安全な文字列操作
- * - 事前資料 6章: Game、Unit、GameInput構造体
- * - 事前資料 10章: update関数、enum + switchによる状態遷移
- * - 事前資料 11章: 不正な値を早めに拒否する防御的な判定
- * - 可変長引数と有限状態機械の具体的な組み方は本作で追加した内容
+ *  事前資料 3章: static関数、引数、戻り値による処理分割
+ *  事前資料 4章: Game *を通して同じ試合状態を更新する
+ *  事前資料 5章: units[]、message[]、安全な文字列操作
+ *  事前資料 6章: Game、Unit、GameInput構造体
+ *  事前資料 10章: update関数、enum + switchによる状態遷移
+ *  事前資料 11章: 不正な値を早めに拒否する防御的な判定
+ *  可変長引数と有限状態機械の具体的な組み方は本作で追加した内容
  */
 
 /* va_list等、引数の個数が変わる関数を作るための標準ヘッダ（資料外）。 */
 #include <stdarg.h>
-/* vsnprintfを使うための標準入出力ヘッダ。 */
+/* vsnprintfを使うめの標準入出力ヘッダ。 */
 #include <stdio.h>
 /* memsetを使うための文字列・メモリ操作ヘッダ（5章）。 */
 #include <string.h>
@@ -46,13 +46,13 @@
 /* P1ならP2、P2ならP1を返す小さな補助関数。 */
 static Player otherPlayer(Player player)
 {
-    /* 三項演算子でif/elseを1つの式として書いている（2章）。 */
+    /* 三項演算子でif/elseを1つの式として書いてる（2章）。 */
     return player == PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE;
 }
 
 /*
- * printfと同様に%d等を使って下画面メッセージを組み立てる。
- * ... は可変長引数といい、事前資料外のC文法。sizeofで配列容量を渡すため、
+ * printfと同様に%d等を使って下画面メッセージを組み立てる
+ * ... は可変長引数。事前資料外のC文法。sizeofで配列容量を渡すので、
  * 長すぎる文字列でもmessage[96]を越えて書かない（5章のsnprintfと同じ考え）。
  */
 static void gameSetMessage(Game *game, const char *format, ...)
@@ -84,7 +84,7 @@ static bool gameAllLivingUnitsActed(const Game *game, Player player)
     int i;
     for (i = 0; i < UNIT_COUNT; i++) {
         const Unit *unit = &game->units[i];
-        /* 1体でも未行動がいれば「全員行動済み」ではない。 */
+        /* 1体でも未行動がいれば「全員行動済み」じゃない。 */
         if (unit->alive && unit->owner == player && !unit->acted) {
             return false;
         }
@@ -92,7 +92,7 @@ static bool gameAllLivingUnitsActed(const Game *game, Player player)
     return true;
 }
 
-/* 新しい自分ターンの開始時、指定側のactedをすべてfalseへ戻す。 */
+/* 新しい自分ターンの開始時に、指定側のactedをすべてfalseへ戻す。 */
 static void gameResetActed(Game *game, Player player)
 {
     int i;
@@ -112,13 +112,13 @@ static void gameFocusFirstAvailableUnit(Game *game)
         if (unit->alive && unit->owner == game->currentPlayer && !unit->acted) {
             game->cursorX = unit->x;
             game->cursorY = unit->y;
-            /* 座標をコピーしたら目的達成なのでループと関数を終了する。 */
+            /* 座標をコピーしたら目的達成なのでループと関数を終了。 */
             return;
         }
     }
 }
 
-/* 相手へ手番を渡し、そのプレイヤーの行動状態と画面状態を初期化する。 */
+/* 相手へ手番を渡し、そのプレイヤーの行動状態と画面状態を初期化。 */
 static void gameBeginNextTurn(Game *game)
 {
     /* 現在プレイヤーを反対側へ置き換える。 */
@@ -227,7 +227,7 @@ static void gameUpdateSelectMove(Game *game, GameInput input)
 
     /*
      * ここでは移動を一旦反映するが、行動選択中のBでoriginへ戻せる。
-     * この方式を「仮適用して後からロールバックする」と考えられる（資料外）。
+     * この方式を「仮適用して後からロールバックする」と考えれる（資料外）。
      */
     unit->x = game->cursorX;
     unit->y = game->cursorY;
@@ -279,7 +279,7 @@ static void gameUpdateSelectAction(Game *game, GameInput input)
         return;
     }
 
-    /* ATTACKはtarget>=0のときだけ選べるため、対象選択へそのまま進める。 */
+    /* ATTACKはtarget>=0のときだけ選べるので、対象選択へそのまま進める。 */
     /* 最初の攻撃可能対象へカーソルを移し、対象選択状態へ進む。 */
     game->cursorX = game->units[target].x;
     game->cursorY = game->units[target].y;
@@ -314,9 +314,8 @@ static void gameUpdateSelectTarget(Game *game, GameInput input)
 
     attacker = &game->units[game->selectedUnit];
     defender = &game->units[target];
-    /* -= は「左辺から右辺を引いて左辺へ代入」の省略形。 */
     defender->hp -= attacker->attack;
-    /* HPが負数のまま表示されないよう0へ丸め、盤面から除外する。 */
+    /* HPが負数のまま表示されないよう0へ丸め、盤面から除外。 */
     if (defender->hp <= 0) {
         defender->hp = 0;
         defender->alive = false;
@@ -355,7 +354,7 @@ void gameInit(Game *game)
 /* main.cから毎フレーム1回呼ばれる、ゲーム進行の公開入口。 */
 void gameUpdate(Game *game, GameInput input)
 {
-    /* ゲーム終了中はSTART以外を無視し、押されたら同じGameを再初期化する。 */
+    /* ゲーム終了中はSTART以外を無視し、押されたら同じGameを再初期化。 */
     if (game->phase == PHASE_GAME_OVER) {
         if (input.restart) gameInit(game);
         return;

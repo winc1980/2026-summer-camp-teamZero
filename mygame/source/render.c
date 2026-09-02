@@ -2,37 +2,37 @@
  * render.c — 上下画面の描画と、画像差し替えの中心
  * --------------------------------------------------------------------------
  * 上画面へ8×6盤面・ユニット・カーソル・移動/攻撃範囲を表示し、
- * 下画面へターン、案内文、HP、行動メニューを日本語で表示します。
- * Gameはconstポインタで受け取り、描画中にルールやHPを変更しません。
+ * 下画面へターン、案内文、HP、行動メニューを日本語で表示。
+ * Gameはconstポインタで受け取り、描画中にルールやHPを変更しない。
  *
- * 現在の盤面とキャラクターは、画像素材が未確定でも遊べるよう、
- * 16bitビットマップ背景と32×32スプライトをコード内で生成しています。
- * graphics/にある既存PNGはビルド対象として残していますが、このMVP描画には
- * まだ接続していません。画像担当が素材を組み込む際は、まず次を確認します。
+ * 現在の盤面とキャラクターは、画像素材が未確定でも遊べるように、
+ * 16bitビットマップ背景と32×32スプライトをコード内で生成している。
+ * （重要！）graphics/にある既存PNGはビルド対象として残しているが、このMVP描画には
+ * まだ接続してない。画像担当が素材を組み込む際は、まず以下を確認。
  *
  * 画像変更の入口:
- * - terrainColor()/drawBoard() : 草・山・川・建造物など盤面の見た目
- * - makeUnitGraphics()          : P1/P2のA・B・Cの仮画像
- * - makeBorderGraphics()        : 黄色カーソル、水色移動範囲、赤色攻撃範囲
- * - renderStatusScreen()        : 下画面の文字・メニュー配置
- * - renderInit()                : 画面モード、VRAM、背景、OAMの初期化
+ *  terrainColor()/drawBoard() : 草・山・川・建造物など盤面の見た目
+ *  makeUnitGraphics()          : P1/P2のA・B・Cの仮画像
+ *  makeBorderGraphics()        : 黄色カーソル、水色移動範囲、赤色攻撃範囲
+ *  renderStatusScreen()        : 下画面の文字・メニュー配置
+ *  renderInit()                : 画面モード、VRAM、背景、OAMの初期化
  *
- * 黄色カーソルと範囲表示は、盤面やユニット画像へ直接描き込まず、
- * 中央が透明な別スプライトを上から重ねています。そのため、盤面・キャラ画像を
- * 差し替えても、32×32というマスサイズを保てば枠の仕組みを再利用できます。
+ * （重要！）黄色カーソルと範囲表示は、盤面やユニット画像へ直接描き込まず、
+ * 中央が透明な別スプライトを上から重ねている。そのため、盤面・キャラ画像を
+ * 差し替えても、32×32というマスサイズを保てば枠の仕組みを再利用できる。
  *
  * 参考資料:
- * - 事前資料 2章: u16、色成分、キャスト
- * - 事前資料 4章: VRAMを指すu16 *、読み取り専用のconst Game *
- * - 事前資料 5章: ピクセル配列、snprintf、memcmp/memcpy
- * - 事前資料 7章: VRAM、static配列、スプライト用メモリ
- * - 事前資料 8章: ビット判定とDSの色
- * - 事前資料 10章: 更新と描画を分けるゲームループ
- * - BlocksDS公式 Backgrounds
+ *  事前資料 2章: u16、色成分、キャスト
+ *  事前資料 4章: VRAMを指すu16 *、読み取り専用のconst Game *
+ *  事前資料 5章: ピクセル配列、snprintf、memcmp/memcpy
+ *  事前資料 7章: VRAM、static配列、スプライト用メモリ
+ *  事前資料 8章: ビット判定とDSの色
+ *  事前資料 10章: 更新と描画を分けるゲームループ
+ *  BlocksDS公式 Backgrounds
  *   https://blocksds.skylyrac.net/tutorial/basic/backgrounds/
- * - BlocksDS公式 Sprites
+ *  BlocksDS公式 Sprites
  *   https://blocksds.skylyrac.net/tutorial/basic/sprites/
- * - gritによる画像変換
+ *  gritによる画像変換
  *   https://blocksds.skylyrac.net/grit/index.html
  */
 
@@ -49,7 +49,7 @@
 #include "unit.h"
 
 /*
- * OAM（Object Attribute Memory）はDSのスプライト管理表。
+ * OAMはDSのスプライト管理表。
  * スプライトごとに重ならないID範囲を予約し、毎フレーム同じ役割で再利用する。
  * enumに明示値を置くことで、ユニットやハイライト同士のID衝突を防ぐ。
  */
@@ -69,7 +69,7 @@ static int boardBackground;
 static int uiBackground;
 static u16 *boardPixels;
 static u16 *uiPixels;
-/* [プレイヤー][A/B/C]ごとに32×32画像のVRAMアドレスを保持する。 */
+/* [プレイヤー][A/B/C]ごとに32×32画像のVRAMアドレスを保持。 */
 static u16 *unitGraphics[2][TEAM_SIZE];
 static u16 *cursorGraphics;
 static u16 *moveGraphics;
@@ -217,7 +217,7 @@ static void drawBoard(const Game *game)
     for (y = 0; y < BOARD_HEIGHT; y++) {
         for (x = 0; x < BOARD_WIDTH; x++) {
             u16 color = terrainColor(game->terrain[y][x]);
-            /* マス座標を画面ピクセル座標へ変換する。 */
+            /* マス座標を画面ピクセル座標へ変換。 */
             int top = y * TILE_SIZE;
             int left = x * TILE_SIZE;
             for (pixelY = top + 1; pixelY < top + TILE_SIZE - 1; pixelY++) {
@@ -232,7 +232,7 @@ static void drawBoard(const Game *game)
 /*
  * libndsのoamSetへ、このゲームで共通の32×32ビットマップ設定を渡す。
  * id=OAM番号、priorityは小さいほど手前、alphaは0〜15の透明度。
- * 引数の多いoamSetを直接各所へ書かず、間違いを減らすラッパー関数。
+ * 引数の多いoamSetを直接各所へ描かず、間違いを減らすラッパー関数。
  */
 static void setBitmapSprite(int id, int x, int y, int priority, int alpha, u16 *graphics)
 {
@@ -250,7 +250,7 @@ static void renderHighlights(const Game *game)
     /* ユニット未選択なら判定に使える番号がないので何も描かない。 */
     if (game->selectedUnit < 0) return;
     if (game->phase == PHASE_SELECT_MOVE) {
-        /* 全48マスをboardCanMoveToへ渡し、trueのマスだけ水色表示する。 */
+        /* 全48マスをboardCanMoveToへ渡し、trueのマスだけ水色表示。 */
         for (y = 0; y < BOARD_HEIGHT && count < OAM_HIGHLIGHT_MAX; y++) {
             for (x = 0; x < BOARD_WIDTH && count < OAM_HIGHLIGHT_MAX; x++) {
                 if (boardCanMoveTo(game, game->selectedUnit, x, y)) {
@@ -293,8 +293,8 @@ static void renderUnits(const Game *game)
 
 /*
  * 地形配列が前回と違うときだけ盤面背景を描き直す。
- * 以前は毎フレーム「黒く消す→緑を塗る」を行い、LCDが途中状態を読んで
- * 点滅した。memcmpで同一ならreturnし、静止中のVRAM書込みをなくしている。
+ * 最初に作ったとき、毎フレーム「黒く消す→緑を塗る」を行い、LCDが途中状態を読んで
+ * 点滅してしまったので、memcmpで同一ならreturnし、静止中のVRAM書込みをなくしてる。
  */
 static void drawBoardIfChanged(const Game *game)
 {
@@ -304,7 +304,7 @@ static void drawBoardIfChanged(const Game *game)
         return;
     }
     drawBoard(game);
-    /* memcpyで今回の地形配列を比較用配列へ丸ごとコピーする。 */
+    /* memcpyで今回の地形配列を比較用配列へ丸ごとコピー。 */
     memcpy(lastBoardTerrain, game->terrain, sizeof(lastBoardTerrain));
     hasLastBoardTerrain = true;
 }
@@ -330,7 +330,7 @@ static const char *unitStatus(const Unit *unit)
     return "みこうどう";
 }
 
-/* 下画面の見える256×192ピクセルを黒で初期化する。 */
+/* 下画面の見える256×192ピクセルを黒で初期化。 */
 static void clearUi(void)
 {
     int i;
@@ -351,7 +351,7 @@ static void renderStatusScreen(const Game *game)
     u16 red = makeColor(31, 9, 9);
 
     /*
-     * Game全体が前回と同じなら描画しない。毎フレームclearUiすると文字が
+     * （重要！）Game全体が前回と同じなら描画しない。毎フレームclearUiすると文字が
      * ちらつくため、状態が変わったフレームだけ更新する。
      */
     if (hasLastConsoleGame && memcmp(&lastConsoleGame, game, sizeof(*game)) == 0) {
@@ -361,7 +361,7 @@ static void renderStatusScreen(const Game *game)
     hasLastConsoleGame = true;
     clearUi();
 
-    /* 左上(x,y)と色を指定し、上から8〜12px間隔で各行を配置する。 */
+    /* 左上(x,y)と色を指定し、上から8〜12px間隔で各行を配置。 */
     japaneseTextDraw(uiPixels, 4, 4, "TACTICS MVP", yellow);
     /* %dへプレイヤー番号、%sへphaseNameの文字列を埋める（5章）。 */
     snprintf(line, sizeof(line), "プレイヤー%d  %s",
@@ -405,13 +405,13 @@ static void renderStatusScreen(const Game *game)
     japaneseTextDraw(uiPixels, 4, 164, "B:もどる START:もういちど", white);
 }
 
-/* DSの映像ハードウェアと、実行中に生成する仮画像を起動時に準備する。 */
+/* DSの映像ハードウェアと、実行中に生成する仮画像を起動時に準備。 */
 void renderInit(void)
 {
     int owner;
     int type;
 
-    /* メインエンジン（盤面）を上画面、サブエンジン（UI）を下画面へ割り当てる。 */
+    /* メインエンジン（盤面）を上画面、サブエンジン（UI）を下画面へ割り当ててる。 */
     lcdMainOnTop();
     /* MODE_5_2Dは16bitビットマップ背景を使える2D画面モード（資料外）。 */
     videoSetMode(MODE_5_2D);
@@ -456,10 +456,10 @@ void renderInit(void)
     makeBorderGraphics(attackGraphics, makeColor(31, 5, 2), true);
 }
 
-/* 1フレームのGameから、次の画面内容をOAM/VRAMへ準備する。 */
+/* 1フレームのGameから、次の画面内容をOAM/VRAMへ準備。 */
 void renderGame(const Game *game)
 {
-    /* 静的な背景は変更時のみ更新。 */
+    /* 静的な背景は変更時のみ更新する。 */
     drawBoardIfChanged(game);
     /* 前フレームのスプライト登録を一旦消し、現状態から登録し直す。 */
     oamClear(&oamMain, 0, 128);
