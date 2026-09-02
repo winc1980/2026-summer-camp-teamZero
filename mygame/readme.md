@@ -1,41 +1,50 @@
-# ROM Template (ARM9)
+# チーム0のゲーム（仮）
 
-## 1. Introduction
+合宿用に作った、Nintendo DS向けの2人対戦ターン制ゲームです。
 
-This template contains code to build a project with custom ARM9 and an ARM7
-provided by BlocksDS SDK.
+上画面は `8 × 6` の盤面、下画面はターン・HP・操作案内です。現在は仮の色と文字で描画しているため、画像素材が未決定でもゲーム部分を試せます。
 
-Build it with the following command:
+## ビルド
+
+VS CodeでDev Containerを開き、ターミナルで次を実行します。
 
 ```bash
+cd /work/mygame
 make
 ```
 
-This should have generated a NDS ROM that you can run on any emulator or
-flashcart.
-
-To do a verbose build, run `make` like this (this also works for the Makefile
-of the SDK):
+成功すると `mygame.nds` ができます。`make: Nothing to be done for 'all'.` は、前回から変更がなくビルド済みという意味です。最初から作り直す場合は次を使います。
 
 ```bash
-VERBOSE=1 make
+make clean
+make
 ```
 
-## 2. Makefile instructions
+## 操作
 
-The paths in the Makefile that refer to source code, includes, graphics, data,
-etc, must be inside the folder of the project. That means you can't use `..`
-in a path to go one level up from the Makefile.
+- 十字キー：カーソル移動、攻撃/待機の切り替え
+- A：決定
+- B：1段階戻る。移動後ならキャラも元の位置に戻る
+- START：ゲーム終了後に最初からやり直す
 
-If you really need to use folders outside of the folder of the project, create a
-symlink to the destination, or build the other code as a static library and link
-it with the project.
+1台を交代で持つ共通操作方式です。各プレイヤーは自分のターンに、生きていて未行動の3体を1回ずつ動かします。
 
-## License
+melonDSでA以外が未設定なら、`Config → Input and Hotkeys` の `DS keypad` で、Up/Down/Left/Rightをキーボードの矢印、AをX、BをZ、StartをEnterなどに割り当ててください。
 
-This template is licensed under the following license:
+下画面の案内は日本語表示です。8×8ドットの美咲フォントから、ゲームで使う文字だけを収録しています。
 
-**CC0 1.0 Universal (CC0 1.0)**
-**Public Domain Dedication**
+詳しいルールと変更箇所は [docs/team-cheatsheet.md](docs/team-cheatsheet.md) を参照してください。
 
-You may use this code and modify it without the need to give credit in any way.
+## PC上のルールテスト
+
+DSの描画を除くルールは、macOS側でも確認できます。
+
+```bash
+cd /work/mygame
+cc -std=c11 -Wall -Wextra -Werror -Isource \
+  test/test_rules.c source/game.c source/board.c source/unit.c \
+  -o /tmp/mygame-rule-tests
+/tmp/mygame-rule-tests
+```
+
+`All game rule tests passed.` と出れば成功です。
