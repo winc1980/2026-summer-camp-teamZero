@@ -1,14 +1,25 @@
 /*
- * input.c
+ * input.c — DSの物理ボタンをゲーム用の入力へ変換する
  * --------------------------------------------------------------------------
- * libndsが返すボタンのビット列を、ゲーム用GameInputへ翻訳する。
- * 現在は両プレイヤーが十字キー/A/B/STARTを共有して本体を交代で持つ。
+ * libndsのkeysDown()が返すビット列を読み、GameInput構造体へ変換します。
+ * game.cはKEY_AなどのDS固有定数を直接使わず、「決定」「取消」「上下移動」
+ * という意味だけを受け取ります。
  *
- * 事前資料との対応:
- * - 6章「構造体」   : 複数の入力をGameInputへまとめる
- * - 8章「ビット演算」: down & KEY_A で特定ビットだけを調べる
- * - 12章「開発環境」: BlocksDS/libndsでビルドする部分
- * - keysDown()等のlibnds APIは事前資料の本文外。BlocksDS公式資料の領域
+ * 現在は、両プレイヤーが十字キー・A・B・STARTを共有し、ターンごとに
+ * 本体を交代で操作する方式です。将来、左右でキーを分ける場合は、
+ * 主にこのファイルでGameInputへの割り当てを変更します。
+ *
+ * 呼び出し順:
+ * 1. main.cのscanKeys()がlibnds内部のキー状態を更新する
+ * 2. inputReadShared()がkeysDown()を読み、GameInputを返す
+ * 3. main.cがそのGameInputをgameUpdate()へ渡す
+ *
+ * 参考資料:
+ * - 事前資料 6章: 複数の入力をGameInput構造体へまとめる
+ * - 事前資料 8章: down & KEY_Aによるビット判定、8.5「DSのキー入力」
+ * - 事前資料 12章: BlocksDS/libndsの開発環境
+ * - BlocksDS公式 User input
+ *   https://blocksds.skylyrac.net/tutorial/basic/input/
  */
 
 /* u32、keysDown、KEY_*を提供するNintendo DS用ヘッダ。 */

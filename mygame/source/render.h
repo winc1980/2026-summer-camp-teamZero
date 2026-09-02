@@ -1,8 +1,12 @@
 /*
- * render.h
- * Gameの内容をDSの上下画面へ表示する公開関数。
- * const Game *を受け取るため、描画処理はゲーム状態を変更しない（4章）。
- * VRAM/OAM/VBlankの具体的な使い方は事前資料外のBlocksDS固有知識。
+ * render.h — 描画処理の公開窓口
+ * --------------------------------------------------------------------------
+ * main.cから呼ぶ初期化・描画準備・VBlank反映の3関数を宣言します。
+ * renderGame()はconst Game *を受け取るため、表示のためにゲーム状態を
+ * 書き換えないことを関数の型で約束しています。
+ *
+ * 参考: 事前資料 4章（constポインタ）、10章（更新と描画の分離）
+ * VRAM、OAM、VBlankはBlocksDS/libnds固有の内容です。
  */
 #ifndef RENDER_H
 #define RENDER_H
