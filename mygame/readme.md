@@ -48,3 +48,13 @@ cc -std=c11 -Wall -Wextra -Werror -Isource \
 ```
 
 `All game rule tests passed.` と出れば成功です。
+
+## Known Issues
+
+現時点で確認できている既知の不具合はありません。
+
+今後、不具合が見つかった場合は次の内容を記載します。
+
+- 症状
+- 再現手順
+- 推定原因
