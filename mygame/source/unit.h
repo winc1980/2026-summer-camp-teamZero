@@ -20,5 +20,7 @@ int unitAttackForType(UnitType type);
 char unitTypeLetter(UnitType type);
 /* 文字列として種類名を返す。現在はデバッグ・拡張用。 */
 const char *unitTypeName(UnitType type);
+/* A・B・Cごとの仮技名を返す。 */
+const char *unitSkillName(UnitType type);
 
 #endif /* UNIT_H */
