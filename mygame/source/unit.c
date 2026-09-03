@@ -64,3 +64,14 @@ const char *unitTypeName(UnitType type)
         default: return "?";
     }
 }
+
+/* 正式な技名が決まるまでの仮名。後からこの一覧だけを差し替えればよい。 */
+const char *unitSkillName(UnitType type)
+{
+    switch (type) {
+        case UNIT_A: return "SKILL A";
+        case UNIT_B: return "SKILL B";
+        case UNIT_C: return "SKILL C";
+        default: return "SKILL ?";
+    }
+}

@@ -260,6 +260,57 @@ static void testAttackRanges(void)
     assert(boardCanAttack(&game, 4, 0));
 }
 
+/* 敵がいないマスにも、実際の攻撃と同じ範囲判定を再利用できることを確認。 */
+static void testAttackablePositions(void)
+{
+    Game game;
+
+    /* Aは正面1・2マス。2マス先は間の障害物で遮られる。 */
+    gameInit(&game);
+    game.units[0].x = 3;
+    game.units[0].y = 4;
+    assert(boardCanAttackFrom(&game, 0, 3, 4, 3, 3));
+    assert(boardCanAttackFrom(&game, 0, 3, 4, 3, 2));
+    assert(!boardCanAttackFrom(&game, 0, 3, 4, 2, 3));
+    game.terrain[3][3] = TERRAIN_MOUNTAIN;
+    assert(!boardCanAttackFrom(&game, 0, 3, 4, 3, 2));
+
+    /* P2のAは向きが反転し、画面下方向の1・2マスへ届く。 */
+    gameInit(&game);
+    game.units[3].x = 3;
+    game.units[3].y = 1;
+    assert(boardCanAttackFrom(&game, 3, 3, 1, 3, 2));
+    assert(boardCanAttackFrom(&game, 3, 3, 1, 3, 3));
+    assert(!boardCanAttackFrom(&game, 3, 3, 1, 3, 0));
+
+    /* P2のBは画面下方向2マス先の横3マス。 */
+    gameInit(&game);
+    game.units[4].x = 3;
+    game.units[4].y = 1;
+    assert(boardCanAttackFrom(&game, 4, 3, 1, 2, 3));
+    assert(boardCanAttackFrom(&game, 4, 3, 1, 3, 3));
+    assert(boardCanAttackFrom(&game, 4, 3, 1, 4, 3));
+    assert(!boardCanAttackFrom(&game, 4, 3, 1, 3, 2));
+
+    /* Cは斜め四方だけ。 */
+    gameInit(&game);
+    game.units[2].x = 3;
+    game.units[2].y = 3;
+    assert(boardCanAttackFrom(&game, 2, 3, 3, 2, 2));
+    assert(boardCanAttackFrom(&game, 2, 3, 3, 4, 2));
+    assert(boardCanAttackFrom(&game, 2, 3, 3, 2, 4));
+    assert(boardCanAttackFrom(&game, 2, 3, 3, 4, 4));
+    assert(!boardCanAttackFrom(&game, 2, 3, 3, 3, 2));
+
+    /* 実際の座標を書き換えなくても、仮の移動先から範囲を計算できる。 */
+    assert(boardCanAttackFrom(&game, 2, 4, 3, 5, 2));
+
+    /* 不正な番号・盤外座標は配列へ触らず拒否する。 */
+    assert(!boardCanAttackFrom(&game, -1, 0, 0, 0, 0));
+    assert(!boardCanAttackFrom(&game, UNIT_COUNT, 0, 0, 0, 0));
+    assert(!boardCanAttackFrom(&game, 2, -1, 0, 0, 0));
+}
+
 /* 行動選択中にBを押すと、仮移動前の座標へ戻ることを確認する。 */
 static void testCancelRestoresPosition(void)
 {
@@ -400,6 +451,7 @@ int main(void)
     testInitialState();
     testMovementRules();
     testAttackRanges();
+    testAttackablePositions();
     testCancelRestoresPosition();
     testAttackAndVictory();
     testTurnChangesAfterAllUnitsAct();
