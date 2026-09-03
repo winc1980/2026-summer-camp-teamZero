@@ -547,6 +547,18 @@ static void renderStatusScreen(const Game *game)
     hasLastConsoleGame = true;
     clearUi();
 
+    /* 勝敗決定後は通常の操作UIを隠し、結果と再戦方法だけを表示する。 */
+    if (game->phase == PHASE_GAME_OVER) {
+        u16 winnerColor = game->winner == PLAYER_ONE ? blue : red;
+
+        fillUiRect(20, 45, 216, 96, panel);
+        drawUiFrame(20, 45, 216, 96, winnerColor);
+        snprintf(line, sizeof(line), "プレイヤー%dのかち!", (int)game->winner + 1);
+        japaneseTextDraw(uiPixels, 64, 76, line, winnerColor);
+        japaneseTextDraw(uiPixels, 64, 108, "START:もういちど", white);
+        return;
+    }
+
     /* 上端は現在の手番、操作段階、ゲームからの案内文。 */
     snprintf(line, sizeof(line), "P%d  %s", (int)game->currentPlayer + 1,
              phaseName(game->phase));
