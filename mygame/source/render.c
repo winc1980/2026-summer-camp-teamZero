@@ -48,6 +48,11 @@
 #include "render.h"
 #include "unit.h"
 
+#include "building_tile.h"
+#include "mountain_tile.h"
+#include "river_tile.h"
+
+
 /*
  * OAMはDSのスプライト管理表。
  * スプライトごとに重ならないID範囲を予約し、毎フレーム同じ役割で再利用する。
