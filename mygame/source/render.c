@@ -337,6 +337,21 @@ static void clearUi(void)
     for (i = 0; i < 256 * 192; i++) uiPixels[i] = makeColor(0, 0, 0);
 }
 
+
+/* 下画面（256x192）専用の長方形描画関数 */
+static void fillUiRect(int x, int y, int width, int height, u16 color)
+{
+    int row;
+    int column;
+    for (row = y; row < y + height; row++) {
+        for (column = x; column < x + width; column++) {
+            if (column >= 0 && column < 256 && row >= 0 && row < 192) {
+                uiPixels[row* 256 + column] = color;
+            }
+        }
+    }
+}
+
 /* Gameの状態を日本語の情報画面として下画面へ描く。 */
 static void renderStatusScreen(const Game *game)
 {
@@ -407,8 +422,50 @@ static void renderStatusScreen(const Game *game)
                  unitTypeLetter(unit->type), unit->hp, unitStatus(unit));
         japaneseTextDraw(uiPixels, 8, 112 + (i - TEAM_SIZE) * 8, line, white);
     }
-    japaneseTextDraw(uiPixels, 4, 152, "じゅうじ:カーソル A:けってい", white);
-    japaneseTextDraw(uiPixels, 4, 164, "B:もどる START:もういちど", white);
+    japaneseTextDraw(uiPixels, 4, 140, "じゅうじ:カーソル A:けってい", white);
+    japaneseTextDraw(uiPixels, 4, 150, "B:もどる START:もういちど", white);
+
+    /*HPバーを下画面32px (161~192px)に表示*/
+    int hoveredUnit = boardUnitAt(game, game->cursorX, game->cursorY);
+
+    if (hoveredUnit >= 0) {
+        const Unit *hu = &game->units[hoveredUnit];
+        u16 ownerColor = (hu->owner == PLAYER_ONE) ? blue : red;
+
+        /* Hpバーの上に白い区切り線を引いて目立たせる */
+        fillUiRect( 0, 160, 256, 32, makeColor(2, 2, 2));
+        fillUiRect( 0, 159, 256, 1, white);
+
+        /* キャラクター名とHP数値 */
+        snprintf(line, sizeof(line), "P%d %c", (int)hu->owner + 1, unitTypeLetter(hu->type));
+        japaneseTextDraw(uiPixels, 8, 164, line, ownerColor);
+        snprintf(line, sizeof(line), "HP: %3d / %3d", hu->hp, INITIAL_HP);
+        japaneseTextDraw(uiPixels, 64, 164, line, white);
+
+        /* ゲージの背景 (横幅240px、高さ8px) */
+        fillUiRect( 8, 178, 240, 8, darkGray);
+
+        if (hu->hp > 0) {
+            /* 最大HPに対する割合でゲージの長さを計算 (最大幅240px) */
+            int barWidth = (hu->hp * 240) / INITIAL_HP;
+            if (barWidth > 240) barWidth = 240;
+            if (barWidth < 0) barWidth = 0;
+
+            /* 色を判定する */
+            u16 barColor = hpGreen;
+            if (hu->hp <= INITIAL_HP * 0.2) {
+                barColor = hpRed;     /* 20%以下なら赤 */
+            } else if (hu->hp <= INITIAL_HP * 0.5) {
+                barColor = hpYellow;  /* 50%以下なら黄色 */
+            }
+            /* ゲージ本体を描画 */
+            fillUiRect(8, 178, barWidth, 8, barColor);
+        }else{
+            /* HPが0の場合はゲージを描かず、戦闘不能と表示 */
+            japaneseTextDraw(uiPixels, 160, 164, "せんとうふのう", red);
+        }
+    }
+
 }
 
 /* DSの映像ハードウェアと、実行中に生成する仮画像を起動時に準備。 */
