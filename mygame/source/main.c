@@ -43,6 +43,8 @@
 int main(int argc, char **argv) {
   /* 1試合分の状態をmain関数のローカル変数として確保する（6・7章）。 */
   Game game;
+  /*1フレーム前の状態を確保*/
+  Game preGame;
 
   /* (void)へキャストして、意図的な未使用引数だとコンパイラへ伝える。 */
   (void)argc;
@@ -55,6 +57,8 @@ int main(int argc, char **argv) {
   soundInit();
   /* キャラ、盤面、ターン等を初期状態へ。&はgameのアドレス（4章）。 */
   gameInit(&game);
+  /* 最初の比較で未初期化メモリを読まないよう、初期状態を保存する。 */
+  preGame = game;
   /* 入力を待つ前に初期盤面を一度描画キューへ入れる。 */
   renderGame(&game);
 
@@ -70,6 +74,10 @@ int main(int argc, char **argv) {
     gameUpdate(&game, inputReadShared());
     /* 更新後の状態から次に表示する背景・駒・文字を準備。 */
     renderGame(&game);
+
+    /*１フレーム前の試合と今の試合を渡し、その差からSEを出させる*/
+    playAppropriateSE(&game, &preGame);
+    preGame = game;
   }
 
   /* 無限ループから通常は到達しないが、mainの戻り値型intに合わせて書く。 */
