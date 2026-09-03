@@ -259,7 +259,32 @@ static void setBitmapSprite(int id, int x, int y, int priority, int alpha, u16 *
            SpriteColorFormat_Bmp, graphics, -1, false, false, false, false, false);
 }
 
-/* 現在phaseに応じ、移動可能マスまたは攻撃可能な敵へ半透明枠を置く。 */
+/* 移動候補へカーソルを合わせたとき、その地点から届く全攻撃マスを表示する。 */
+static void renderMoveAttackPreview(const Game *game)
+{
+    int x;
+    int y;
+    int count = 0;
+
+    /* 無効な移動先では、移動後の位置を仮定できないので表示しない。 */
+    if (!boardCanMoveTo(game, game->selectedUnit, game->cursorX, game->cursorY)) {
+        return;
+    }
+
+    for (y = 0; y < BOARD_HEIGHT && count < OAM_HIGHLIGHT_MAX; y++) {
+        for (x = 0; x < BOARD_WIDTH && count < OAM_HIGHLIGHT_MAX; x++) {
+            if (boardCanAttackFrom(game, game->selectedUnit,
+                                   game->cursorX, game->cursorY, x, y)) {
+                /* 移動範囲より手前、ユニットとカーソルより奥へ赤い枠を置く。 */
+                setBitmapSprite(OAM_ATTACK_BASE + count, x * TILE_SIZE, y * TILE_SIZE,
+                                1, 8, attackGraphics);
+                count++;
+            }
+        }
+    }
+}
+
+/* 現在phaseに応じ、移動可能マスや攻撃可能範囲へ半透明枠を置く。 */
 static void renderHighlights(const Game *game)
 {
     int x;
@@ -280,6 +305,7 @@ static void renderHighlights(const Game *game)
                 }
             }
         }
+        renderMoveAttackPreview(game);
     } else if (game->phase == PHASE_SELECT_TARGET) {
         int i;
         /* 生存6体から攻撃可能な敵だけを赤く表示する。 */
