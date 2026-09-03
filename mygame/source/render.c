@@ -350,6 +350,12 @@ static void renderStatusScreen(const Game *game)
     u16 blue = makeColor(8, 18, 31);
     u16 red = makeColor(31, 9, 9);
 
+    /*HPゲージに使用する用の色を作成*/
+    u16 darkGray = makeColor(5, 5, 5); 
+    u16 hpGreen = makeColor(5, 31, 5);   /* 余裕 (50%超) */
+    u16 hpYellow = makeColor(31, 31, 5); /* 注意 (20%超) */
+    u16 hpRed = makeColor(31, 5, 5);     /* ピンチ (20%以下) */
+
     /*
      * （重要！）Game全体が前回と同じなら描画しない。毎フレームclearUiすると文字が
      * ちらつくため、状態が変わったフレームだけ更新する。
