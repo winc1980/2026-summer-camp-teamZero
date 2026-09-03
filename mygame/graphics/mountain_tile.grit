@@ -1,1 +1,2 @@
--gB16 -gb -GT! -m! -p!
+# 16bpp bitmap (No tiles, no map, no palette)
+-gB16 -gb -gT! -m! -p!
