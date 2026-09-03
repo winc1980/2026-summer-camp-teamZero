@@ -47,6 +47,7 @@
 #include "japanese_text.h"
 #include "render.h"
 #include "unit.h"
+#include "grass.h"
 
 /*
  * OAMはDSのスプライト管理表。
@@ -198,7 +199,6 @@ static u16 terrainColor(TerrainType terrain)
     }
 }
 
-/* 16bitビットマップ背景へ、黒い罫線付きの8×6盤面を直接描く。 */
 static void drawBoard(const Game *game)
 {
     int x;
@@ -212,23 +212,42 @@ static void drawBoard(const Game *game)
             boardPixels[pixelY * 256 + pixelX] = makeColor(0, 0, 0);
         }
     }
-
     /* 各地形マスの内側30×30pxを塗り、外周1pxの黒を罫線として残す。 */
     for (y = 0; y < BOARD_HEIGHT; y++) {
         for (x = 0; x < BOARD_WIDTH; x++) {
-            u16 color = terrainColor(game->terrain[y][x]);
-            /* マス座標を画面ピクセル座標へ変換。 */
+            TerrainType terrain = game->terrain[y][x];
+
             int top = y * TILE_SIZE;
             int left = x * TILE_SIZE;
-            for (pixelY = top + 1; pixelY < top + TILE_SIZE - 1; pixelY++) {
-                for (pixelX = left + 1; pixelX < left + TILE_SIZE - 1; pixelX++) {
-                    boardPixels[pixelY * 256 + pixelX] = color;
+
+            if (terrain == TERRAIN_PLAIN) {
+                /* GRITが出力した32bit配列を、16bit(u16)カラーデータとして読み直す。  */
+                const u16 *grassPixels = (const u16 *)grassBitmap;
+                /*   外周1pxを塗らずに残すことで、下地の黒を罫線として見せる (+1 と -1 の理由) */
+                for (pixelY = top + 1; pixelY < top + TILE_SIZE - 1; pixelY++) {
+                    for (pixelX = left + 1; pixelX < left + TILE_SIZE - 1; pixelX++) {
+                       /*  32x32の画像テクスチャ内での、現在のピクセル位置を計算 */
+                        int imgY = pixelY - top;
+                        int imgX = pixelX - left;
+
+                        boardPixels[pixelY * 256 + pixelX] = grassPixels[imgY * TILE_SIZE + imgX];
+                    }
+                }
+            }
+            else {
+                /* 草地以外の地形は、地形ごとの単色でベタ塗りする */
+                u16 color = terrainColor(terrain);
+
+                /* 同様に外周1pxを残して塗る */
+                for (pixelY = top + 1; pixelY < top + TILE_SIZE - 1; pixelY++) {
+                    for (pixelX = left + 1; pixelX < left + TILE_SIZE - 1; pixelX++) {
+                        boardPixels[pixelY * 256 + pixelX] = color;
+                    }
                 }
             }
         }
     }
 }
-
 /*
  * libndsのoamSetへ、このゲームで共通の32×32ビットマップ設定を渡す。
  * id=OAM番号、priorityは小さいほど手前、alphaは0〜15の透明度。
