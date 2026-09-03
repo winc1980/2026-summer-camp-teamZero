@@ -327,14 +327,6 @@ static const char *phaseName(GamePhase phase)
     }
 }
 
-/* Unitのalive/actedから、下画面の状態文字列を優先順に決める。 */
-static const char *unitStatus(const Unit *unit)
-{
-    if (!unit->alive) return "たおれた";
-    if (unit->acted) return "こうどうずみ";
-    return "みこうどう";
-}
-
 /* 下画面の見える256×192ピクセルを黒で初期化。 */
 static void clearUi(void)
 {
@@ -342,18 +334,167 @@ static void clearUi(void)
     for (i = 0; i < 256 * 192; i++) uiPixels[i] = makeColor(0, 0, 0);
 }
 
+/* 下画面の指定範囲を塗る。画面外は切り捨て、VRAMの範囲外へ書かない。 */
+static void fillUiRect(int x, int y, int width, int height, u16 color)
+{
+    int row;
+    int column;
+
+    for (row = y; row < y + height; row++) {
+        for (column = x; column < x + width; column++) {
+            if (column >= 0 && column < 256 && row >= 0 && row < 192) {
+                uiPixels[row * 256 + column] = color;
+            }
+        }
+    }
+}
+
+/* 塗りつぶし長方形の外周へ1pxの枠を描く。 */
+static void drawUiFrame(int x, int y, int width, int height, u16 color)
+{
+    fillUiRect(x, y, width, 1, color);
+    fillUiRect(x, y + height - 1, width, 1, color);
+    fillUiRect(x, y, 1, height, color);
+    fillUiRect(x + width - 1, y, 1, height, color);
+}
+
+/* 攻撃ボタンへ、右上向きの剣を単純な図形で描く。 */
+static void drawAttackIcon(int x, int y, u16 color)
+{
+    int i;
+
+    for (i = 0; i < 13; i++) {
+        fillUiRect(x + 4 + i, y + 16 - i, 2, 2, color);
+    }
+    fillUiRect(x + 2, y + 17, 9, 2, color);
+    fillUiRect(x + 4, y + 19, 2, 5, color);
+    fillUiRect(x + 16, y + 2, 4, 2, color);
+    fillUiRect(x + 18, y + 2, 2, 4, color);
+}
+
+/* 待機ボタンへ砂時計を単純な図形で描く。 */
+static void drawWaitIcon(int x, int y, u16 color)
+{
+    int i;
+
+    fillUiRect(x + 3, y + 3, 16, 2, color);
+    fillUiRect(x + 3, y + 20, 16, 2, color);
+    for (i = 0; i < 7; i++) {
+        fillUiRect(x + 5 + i, y + 5 + i, 2, 2, color);
+        fillUiRect(x + 15 - i, y + 5 + i, 2, 2, color);
+        fillUiRect(x + 11 - i, y + 12 + i, 2, 2, color);
+        fillUiRect(x + 9 + i, y + 12 + i, 2, 2, color);
+    }
+}
+
+typedef enum {
+    UI_BUTTON_DISABLED = 0,
+    UI_BUTTON_IDLE,
+    UI_BUTTON_SELECTED,
+    UI_BUTTON_CONFIRMED
+} UiButtonState;
+
+/* 枠、色、アイコン、押し込み位置をまとめて1つの行動ボタンを描く。 */
+static void drawActionButton(int x, int y, int width, const char *label,
+                             bool attackButton, UiButtonState state)
+{
+    int offset = state == UI_BUTTON_SELECTED ? 1 :
+                 state == UI_BUTTON_CONFIRMED ? 2 : 0;
+    u16 shadow = makeColor(2, 2, 3);
+    u16 border = state == UI_BUTTON_SELECTED ? makeColor(31, 28, 2) :
+                 state == UI_BUTTON_CONFIRMED ? makeColor(31, 31, 31) :
+                 state == UI_BUTTON_DISABLED ? makeColor(10, 10, 10) :
+                 makeColor(22, 22, 24);
+    u16 fill = state == UI_BUTTON_DISABLED ? makeColor(6, 6, 7) :
+               attackButton ?
+                   (state == UI_BUTTON_SELECTED ? makeColor(25, 6, 4) : makeColor(14, 4, 4)) :
+                   (state == UI_BUTTON_SELECTED ? makeColor(4, 12, 26) : makeColor(3, 7, 15));
+    u16 foreground = state == UI_BUTTON_DISABLED ? makeColor(10, 10, 10) :
+                     makeColor(31, 31, 31);
+
+    fillUiRect(x + 2, y + 3, width, 32, shadow);
+    fillUiRect(x, y + offset, width, 32, fill);
+    drawUiFrame(x, y + offset, width, 32, border);
+    if (state == UI_BUTTON_SELECTED) {
+        drawUiFrame(x + 1, y + offset + 1, width - 2, 30, border);
+    }
+    if (attackButton) drawAttackIcon(x + 7, y + offset + 3, foreground);
+    else drawWaitIcon(x + 7, y + offset + 3, foreground);
+    japaneseTextDraw(uiPixels, x + 35, y + offset + 12, label, foreground);
+}
+
+/* 選択確定済みのキャラ、またはカーソルを合わせている自軍キャラを返す。 */
+static int statusUnitIndex(const Game *game)
+{
+    int index;
+
+    if (game->selectedUnit >= 0 && game->selectedUnit < UNIT_COUNT &&
+        game->units[game->selectedUnit].alive) {
+        return game->selectedUnit;
+    }
+    index = boardUnitAt(game, game->cursorX, game->cursorY);
+    if (index >= 0 && game->units[index].owner == game->currentPlayer) return index;
+    return -1;
+}
+
+/* 選択中キャラを中央に置き、実際の盤面ルールから5×5の攻撃範囲図を描く。 */
+static void drawAttackRangeMap(const Game *game, int unitIndex, int left, int top)
+{
+    const Unit *unit = &game->units[unitIndex];
+    int mapY;
+    int mapX;
+    u16 grid = makeColor(10, 12, 16);
+    u16 empty = makeColor(3, 4, 7);
+    u16 outside = makeColor(1, 1, 2);
+    u16 range = makeColor(24, 5, 4);
+    u16 unitColor = unit->owner == PLAYER_ONE ? makeColor(7, 17, 31) :
+                                                makeColor(31, 7, 7);
+
+    for (mapY = -2; mapY <= 2; mapY++) {
+        for (mapX = -2; mapX <= 2; mapX++) {
+            int boardX = unit->x + mapX;
+            int boardY = unit->y + mapY;
+            int cellX = left + (mapX + 2) * 10;
+            int cellY = top + (mapY + 2) * 10;
+            u16 fill = boardIsInside(boardX, boardY) ? empty : outside;
+
+            if (boardCanAttackFrom(game, unitIndex, unit->x, unit->y, boardX, boardY)) {
+                fill = range;
+            }
+            if (mapX == 0 && mapY == 0) fill = unitColor;
+            fillUiRect(cellX, cellY, 10, 10, grid);
+            fillUiRect(cellX + 1, cellY + 1, 8, 8, fill);
+        }
+    }
+}
+
+/* 1チーム3体のHPを、常時確認できる小さな1行へまとめる。 */
+static void drawTeamSummary(const Game *game, Player owner, int x, int y, u16 color)
+{
+    int base = owner == PLAYER_ONE ? 0 : TEAM_SIZE;
+    char line[40];
+
+    snprintf(line, sizeof(line), "P%d A%3d B%3d C%3d", (int)owner + 1,
+             game->units[base].hp, game->units[base + 1].hp, game->units[base + 2].hp);
+    japaneseTextDraw(uiPixels, x, y, line, color);
+}
+
 /* Gameの状態を日本語の情報画面として下画面へ描く。 */
 static void renderStatusScreen(const Game *game)
 {
-    int i;
-    /* snprintfで1行を組み立てるための作業用C文字列（5章）。 */
+    int unitIndex;
     char line[96];
     u16 white = makeColor(31, 31, 31);
     u16 yellow = makeColor(31, 28, 2);
-    /* 選べない項目を示す暗い灰色。新しい画像やパレットは使用しない。 */
-    u16 disabled = makeColor(10, 10, 10);
     u16 blue = makeColor(8, 18, 31);
     u16 red = makeColor(31, 9, 9);
+    u16 panel = makeColor(3, 5, 9);
+    bool actionPhase = game->phase == PHASE_SELECT_ACTION;
+    bool targetPhase = game->phase == PHASE_SELECT_TARGET;
+    bool canAttack = game->selectedUnit >= 0 &&
+        boardFindFirstAttackTarget(game, game->selectedUnit) >= 0;
+    UiButtonState attackState = UI_BUTTON_DISABLED;
+    UiButtonState waitState = UI_BUTTON_DISABLED;
 
     /*
      * （重要！）Game全体が前回と同じなら描画しない。毎フレームclearUiすると文字が
@@ -366,48 +507,57 @@ static void renderStatusScreen(const Game *game)
     hasLastConsoleGame = true;
     clearUi();
 
-    /* 左上(x,y)と色を指定し、上から8〜12px間隔で各行を配置。 */
-    japaneseTextDraw(uiPixels, 4, 4, "TACTICS MVP", yellow);
-    /* %dへプレイヤー番号、%sへphaseNameの文字列を埋める（5章）。 */
-    snprintf(line, sizeof(line), "プレイヤー%d  %s",
-             (int)game->currentPlayer + 1, phaseName(game->phase));
-    japaneseTextDraw(uiPixels, 4, 16, line, white);
-    japaneseTextDraw(uiPixels, 4, 28, game->message, white);
+    /* 上端は現在の手番、操作段階、ゲームからの案内文。 */
+    snprintf(line, sizeof(line), "P%d  %s", (int)game->currentPlayer + 1,
+             phaseName(game->phase));
+    japaneseTextDraw(uiPixels, 4, 3, line, yellow);
+    japaneseTextDraw(uiPixels, 4, 14, game->message, white);
 
-    /* 行動選択中だけ、>と黄色で選択中項目を示す。 */
-    if (game->phase == PHASE_SELECT_ACTION) {
-        bool canAttack = game->selectedUnit >= 0 &&
-            boardFindFirstAttackTarget(game, game->selectedUnit) >= 0;
-        snprintf(line, sizeof(line), "%c こうげき",
-                 canAttack && game->selectedAction == ACTION_ATTACK ? '>' : ' ');
-        /* 攻撃対象がいない場合も文字は残し、暗い灰色で選択不可だと示す。 */
-        japaneseTextDraw(uiPixels, 12, 40, line,
-                         !canAttack ? disabled :
-                         game->selectedAction == ACTION_ATTACK ? yellow : white);
-        snprintf(line, sizeof(line), "%c たいき",
-                 game->selectedAction == ACTION_WAIT ? '>' : ' ');
-        japaneseTextDraw(uiPixels, 12, 48, line,
-                         game->selectedAction == ACTION_WAIT ? yellow : white);
+    /* 行動選択中だけ操作可能にし、選択中のボタンを明るく押し込んで表示。 */
+    if (actionPhase) {
+        if (canAttack) {
+            attackState = game->selectedAction == ACTION_ATTACK ?
+                UI_BUTTON_SELECTED : UI_BUTTON_IDLE;
+        }
+        waitState = game->selectedAction == ACTION_WAIT ? UI_BUTTON_SELECTED : UI_BUTTON_IDLE;
+    } else if (targetPhase) {
+        attackState = UI_BUTTON_CONFIRMED;
+    }
+    drawActionButton(6, 27, 119, "こうげき", true, attackState);
+    drawActionButton(131, 27, 119, "たいき", false, waitState);
+
+    /* 左に攻撃範囲図、中央に選択キャラ情報、右に全員分の小さなHP。 */
+    unitIndex = statusUnitIndex(game);
+    fillUiRect(5, 67, 246, 69, panel);
+    drawUiFrame(5, 67, 246, 69, makeColor(12, 14, 19));
+    if (unitIndex >= 0) {
+        const Unit *unit = &game->units[unitIndex];
+        drawAttackRangeMap(game, unitIndex, 10, 76);
+        snprintf(line, sizeof(line), "P%d %c", (int)unit->owner + 1,
+                 unitTypeLetter(unit->type));
+        japaneseTextDraw(uiPixels, 66, 76, line,
+                         unit->owner == PLAYER_ONE ? blue : red);
+        snprintf(line, sizeof(line), "ATK %d", unit->attack);
+        japaneseTextDraw(uiPixels, 66, 90, line, white);
+        japaneseTextDraw(uiPixels, 66, 104, unitSkillName(unit->type), white);
+        japaneseTextDraw(uiPixels, 66, 118, "RANGE", red);
+    } else {
+        japaneseTextDraw(uiPixels, 12, 90, "キャラをえらぶ", white);
+    }
+    drawTeamSummary(game, PLAYER_ONE, 158, 80, blue);
+    drawTeamSummary(game, PLAYER_TWO, 158, 96, red);
+
+    /* 次のHPゲージIssueで拡張する領域。現時点では数値だけを引き継ぐ。 */
+    fillUiRect(5, 141, 246, 30, panel);
+    drawUiFrame(5, 141, 246, 30, makeColor(12, 14, 19));
+    if (unitIndex >= 0) {
+        snprintf(line, sizeof(line), "HP %d", game->units[unitIndex].hp);
+        japaneseTextDraw(uiPixels, 12, 152, line, white);
+    } else {
+        japaneseTextDraw(uiPixels, 12, 152, "HP ---", makeColor(10, 10, 10));
     }
 
-    /* P1の3体はunits[0..2]、P2はunits[3..5]。 */
-    japaneseTextDraw(uiPixels, 4, 64, "P1 (あお)", blue);
-    for (i = 0; i < TEAM_SIZE; i++) {
-        const Unit *unit = &game->units[i];
-        /* %c=種類文字、%3d=最低3桁幅のHP、%s=日本語状態。 */
-        snprintf(line, sizeof(line), " %c HP:%3d %s",
-                 unitTypeLetter(unit->type), unit->hp, unitStatus(unit));
-        japaneseTextDraw(uiPixels, 8, 72 + i * 8, line, white);
-    }
-    japaneseTextDraw(uiPixels, 4, 104, "P2 (あか)", red);
-    for (i = TEAM_SIZE; i < UNIT_COUNT; i++) {
-        const Unit *unit = &game->units[i];
-        snprintf(line, sizeof(line), " %c HP:%3d %s",
-                 unitTypeLetter(unit->type), unit->hp, unitStatus(unit));
-        japaneseTextDraw(uiPixels, 8, 112 + (i - TEAM_SIZE) * 8, line, white);
-    }
-    japaneseTextDraw(uiPixels, 4, 152, "じゅうじ:カーソル A:けってい", white);
-    japaneseTextDraw(uiPixels, 4, 164, "B:もどる START:もういちど", white);
+    japaneseTextDraw(uiPixels, 5, 180, "A:けってい B:もどる", white);
 }
 
 /* DSの映像ハードウェアと、実行中に生成する仮画像を起動時に準備。 */

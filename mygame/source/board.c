@@ -166,34 +166,26 @@ bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y)
     }
 }
 
-/* 攻撃者と対象が敵同士で、キャラ固有の攻撃範囲内かを確認する。 */
-bool boardCanAttack(const Game *game, int attackerIndex, int targetIndex)
+/* 敵の有無に関係なく、指定位置から対象マスへ攻撃が届くかを確認する。 */
+bool boardCanAttackFrom(const Game *game, int attackerIndex, int fromX, int fromY,
+                        int targetX, int targetY)
 {
     const Unit *attacker;
-    const Unit *target;
     int dx;
     int dy;
     int forward;
 
-    /* 2つの配列番号を検証してからunits[]へアクセスする。 */
+    /* 配列番号と座標を検証してからunits[]やterrain[][]へアクセスする。 */
     if (attackerIndex < 0 || attackerIndex >= UNIT_COUNT ||
-        targetIndex < 0 || targetIndex >= UNIT_COUNT) {
+        !boardIsInside(fromX, fromY) || !boardIsInside(targetX, targetY)) {
         return false;
     }
     attacker = &game->units[attackerIndex];
-    target = &game->units[targetIndex];
-    /* 死亡者同士や味方への攻撃は禁止。!は真偽を反転する演算子。 */
-    if (!attacker->alive || !target->alive || attacker->owner == target->owner) {
+    if (!attacker->alive) {
         return false;
     }
-    /* 壊れた座標からterrain[][]を読まないよう、両者の盤内判定も行う。 */
-    if (!boardIsInside(attacker->x, attacker->y) ||
-        !boardIsInside(target->x, target->y)) {
-        return false;
-    }
-
-    dx = target->x - attacker->x;
-    dy = target->y - attacker->y;
+    dx = targetX - fromX;
+    dy = targetY - fromY;
     forward = attacker->owner == PLAYER_ONE ? -1 : 1;
 
     switch (attacker->type) {
@@ -203,10 +195,11 @@ bool boardCanAttack(const Game *game, int attackerIndex, int targetIndex)
                 return false;
             }
             if (dy == forward * 2) {
-                int middleY = attacker->y + forward;
+                int middleY = fromY + forward;
+                int middleUnit = boardUnitAt(game, fromX, middleY);
                 /* 2マス攻撃では、間のキャラや通行不可地形を貫通しない。 */
-                if (boardUnitAt(game, attacker->x, middleY) >= 0 ||
-                    !boardTerrainIsWalkable(game->terrain[middleY][attacker->x])) {
+                if ((middleUnit >= 0 && middleUnit != attackerIndex) ||
+                    !boardTerrainIsWalkable(game->terrain[middleY][fromX])) {
                     return false;
                 }
             }
@@ -226,6 +219,27 @@ bool boardCanAttack(const Game *game, int attackerIndex, int targetIndex)
         default:
             return false;
     }
+}
+
+/* 攻撃者と対象が敵同士で、キャラ固有の攻撃範囲内かを確認する。 */
+bool boardCanAttack(const Game *game, int attackerIndex, int targetIndex)
+{
+    const Unit *attacker;
+    const Unit *target;
+
+    /* 2つの配列番号を検証してからunits[]へアクセスする。 */
+    if (attackerIndex < 0 || attackerIndex >= UNIT_COUNT ||
+        targetIndex < 0 || targetIndex >= UNIT_COUNT) {
+        return false;
+    }
+    attacker = &game->units[attackerIndex];
+    target = &game->units[targetIndex];
+    /* 死亡者同士や味方への攻撃は禁止。!は真偽を反転する演算子。 */
+    if (!attacker->alive || !target->alive || attacker->owner == target->owner) {
+        return false;
+    }
+    return boardCanAttackFrom(game, attackerIndex, attacker->x, attacker->y,
+                              target->x, target->y);
 }
 
 /* 攻撃メニューを開いたとき、最初にカーソルを合わせる敵を探す。 */
