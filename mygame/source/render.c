@@ -432,7 +432,7 @@ static void renderStatusScreen(const Game *game)
         const Unit *hu = &game->units[hoveredUnit];
         u16 ownerColor = (hu->owner == PLAYER_ONE) ? blue : red;
 
-        /* Hpバーの上に白い区切り線を引いて目立たせる */
+        /* Hpバーの上に白い区切り線を引く */
         fillUiRect( 0, 160, 256, 32, makeColor(2, 2, 2));
         fillUiRect( 0, 159, 256, 1, white);
 
@@ -451,17 +451,17 @@ static void renderStatusScreen(const Game *game)
             if (barWidth > 240) barWidth = 240;
             if (barWidth < 0) barWidth = 0;
 
-            /* 色を判定する */
+            /* HPゲージの色を判定する */
             u16 barColor = hpGreen;
             if (hu->hp <= INITIAL_HP * 0.2) {
                 barColor = hpRed;     /* 20%以下なら赤 */
             } else if (hu->hp <= INITIAL_HP * 0.5) {
                 barColor = hpYellow;  /* 50%以下なら黄色 */
             }
-            /* ゲージ本体を描画 */
+            /* HPゲージを描画 */
             fillUiRect(8, 178, barWidth, 8, barColor);
         }else{
-            /* HPが0の場合はゲージを描かず、戦闘不能と表示 */
+            /* HPが0の場合は、せんとううのうと表示 */
             japaneseTextDraw(uiPixels, 160, 164, "せんとうふのう", red);
         }
     }
