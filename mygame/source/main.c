@@ -57,6 +57,8 @@ int main(int argc, char **argv) {
   soundInit();
   /* キャラ、盤面、ターン等を初期状態へ。&はgameのアドレス（4章）。 */
   gameInit(&game);
+  /* 最初の比較で未初期化メモリを読まないよう、初期状態を保存する。 */
+  preGame = game;
   /* 入力を待つ前に初期盤面を一度描画キューへ入れる。 */
   renderGame(&game);
 
