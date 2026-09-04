@@ -51,7 +51,7 @@ Nintendo DS向けの、2人対戦ターン制タクティクスゲーム。
 
 | メンバー | GitHub | 主な担当 |
 |---|---|---|
-| 高根 | [@YuTakane256](https://github.com/YuTakane256) | プロジェクトマネジメント、ゲームの基盤システムとなる[MVP](https://github.com/YuTakane256/2026-summer-camp-tactics-mvp)の作成、対戦中の行動UI、選択中キャラクター情報、移動先からの攻撃範囲表示、レビュー・統合、技術資料の整理 |
+| 高根 | [@YuTakane256](https://github.com/YuTakane256) | Issue設計、Issueの優先順位付けと必要技術レベル分け、メンバーの技術レベルと希望を集計したうえでのIssue担当調整、進捗確認、レビュー・統合、提出版管理などのプロジェクトマネジメント。ゲームの基盤システムとなる[MVP](https://github.com/YuTakane256/2026-summer-camp-tactics-mvp)の作成、対戦中の行動UI、選択中キャラクター情報、移動先からの攻撃範囲表示、技術資料の整理 |
 | 古根川 | [@kh928965-dot](https://github.com/kh928965-dot) | BlocksDS開発環境と初期画面表示、下画面の攻撃ボタン、草地タイルの盤面表示、選択中キャラクターのHPゲージ表示 |
 | 三橋 | [@Mihashy](https://github.com/Mihashy) | 初期プロトタイプ、キャラクター画像の選定・加工、盤面への画像組み込み |
 | 中村 | [@ayanakamu34-wq](https://github.com/ayanakamu34-wq) | BGMと効果音の選定・組み込み、音源ライセンスの確認と記録 |
