@@ -17,8 +17,8 @@ RUN wf-pacman -Syu --noconfirm && \
 #   例: python3, imagemagick, unzip
 #
 #   clangd     : エディタの補完・ジャンプ用
-#   gcc        : examples/ の C 文法サンプルを動かす用（DS 用ではない。
-#                DS のビルドには arm-none-eabi-gcc を使う）
+#   gcc        : DSに依存しないゲームルールのテスト用
+#                （DSのビルドにはarm-none-eabi-gccを使う）
 #   libc6-dev  : gcc が使う標準ライブラリのヘッダ
 # ---------------------------------------------------------------------------
 RUN apt-get update && \

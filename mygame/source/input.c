@@ -14,10 +14,7 @@
  * 2. inputReadShared()がkeysDown()を読み、GameInputを返す
  * 3. main.cがそのGameInputをgameUpdate()へ渡す
  *
- * 参考資料:
- *  事前資料 6章: 複数の入力をGameInput構造体へまとめる
- *  事前資料 8章: down & KEY_Aによるビット判定、8.5「DSのキー入力」
- *  事前資料 12章: BlocksDS/libndsの開発環境
+ * 参考:
  *  BlocksDS公式 User input
  *   https://blocksds.skylyrac.net/tutorial/basic/input/
  */
@@ -34,7 +31,7 @@ GameInput inputReadShared(void)
      * 32ビット整数の各ビットとして返す。scanKeys()はmain.cで直前に呼ぶ。
      */
     u32 down = keysDown();
-    /* {0}は全メンバを0=falseで初期化する構造体初期化構文（6章）。 */
+    /* {0}は全メンバを0=falseで初期化する構造体初期化構文。 */
     GameInput input = {0};
 
     /*

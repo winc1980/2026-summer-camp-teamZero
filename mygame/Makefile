@@ -18,9 +18,7 @@
 # ライブラリ追加や特殊な変換が必要になるまでは、基本的に変更しない。
 # `make`は変更されたファイルをビルドし、`make clean`は生成物を削除する
 #
-# 参考資料:
-#  事前資料 1章「ソースコードが.ndsになるまで」
-#  事前資料 12章「開発環境」、特に12.5と12.6
+# 参考:
 #  BlocksDS公式 Backgrounds（PNGと.gritのビルド時変換）
 #   https://blocksds.skylyrac.net/tutorial/basic/backgrounds/
 

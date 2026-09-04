@@ -14,13 +14,6 @@
  *  新しい地形はTerrainTypeへ追加し、通行判定と描画も合わせて実装する
  *  新しい操作段階はGamePhaseへ追加し、gameUpdate()の遷移も追加する
  *  UnitやGameへメンバを追加したら、初期化処理とテストも更新する
- *
- * 参考資料:
- *  事前資料 1章: ヘッダとインクルードガード
- *  事前資料 2章: 型、bool、定数
- *  事前資料 5章: 配列と文字列
- *  事前資料 6章: 構造体とenum
- *  事前資料 10章: ゲーム状態を構造体で管理する設計
  */
 
 /*
@@ -77,7 +70,6 @@ typedef enum {
 /*
  * 現在どの操作段階かを表すステート（状態）。
  * PHASE_SELECT_UNIT → MOVE → ACTION → TARGET のようにgame.cで遷移。
- * この「状態機械」の具体的な実装は事前資料外だが、10章のゲームループを
  * 複数画面・複数操作へ発展させたもの。
  */
 typedef enum {
@@ -98,7 +90,7 @@ typedef enum {
 /*
  * 盤面上のキャラクター1体分のデータ。
  * typedef struct { ... } Unit; により、以後は「struct ...」ではなく
- * 短い型名 Unit で変数を宣言できる（6章）。
+ * 短い型名 Unit で変数を宣言できる。
  */
 typedef struct {
     UnitType type; /* A・B・Cのどれか。 */
@@ -114,10 +106,10 @@ typedef struct {
 /*
  * ゲーム1試合の状態をすべて持つ構造体。
  * Gameへのポインタを各関数へ渡すことで、グローバル変数を増やさず、
- * 全処理が同じ試合データを読み書きできる（4章・6章・10章）。
+ * 全処理が同じ試合データを読み書きできる。
  */
 typedef struct {
-    /* [行][列] の2次元配列。terrain[y][x]の順でアクセスする（5章）。 */
+    /* [行][列] の2次元配列。terrain[y][x]の順でアクセスする。 */
     TerrainType terrain[BOARD_HEIGHT][BOARD_WIDTH];
     /* 両チーム合計6体を連続した配列で管理する。 */
     Unit units[UNIT_COUNT];
@@ -130,7 +122,7 @@ typedef struct {
     int selectedUnit;           /* 選択中ユニットの配列番号。未選択は-1。 */
     int originX;                /* 仮移動をBで戻すために覚えておく元の列。 */
     int originY;                /* 仮移動をBで戻すために覚えておく元の行。 */
-    /* C文字列は末尾の'\0'を含むchar配列（5章）。UTF-8日本語を保持する。 */
+    /* C文字列は末尾の'\0'を含むchar配列。UTF-8日本語を保持する。 */
     char message[96];
 } Game;
 

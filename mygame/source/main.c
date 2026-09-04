@@ -17,12 +17,7 @@
  *  画面や画像の変更はrender.cで行う
  *  キー配置の変更はinput.cで行う
  *
- * 参考資料:
- *  事前資料 1章: main関数、#include、コンパイル単位
- *  事前資料 3章: 関数呼び出し
- *  事前資料 4章: &gameで同じGameを各処理へ渡す考え方
- *  事前資料 10章: while (1)を使ったゲームループ
- *  事前資料 12章: BlocksDSで.ndsをビルドする環境
+ * 参考:
  *  scanKeys()やVBlankはlibnds固有。BlocksDS公式User inputも参照
  *   https://blocksds.skylyrac.net/tutorial/basic/input/
  */
@@ -38,10 +33,10 @@
 /*
  * OSから呼ばれる開始関数。
  * argc/argvは通常のCプログラムのコマンドライン引数だが、このゲームでは未使用。
- * char **argvは「文字列へのポインタを指すポインタ」（4・5章）。
+ * char **argvは「文字列へのポインタを指すポインタ」。
  */
 int main(int argc, char **argv) {
-  /* 1試合分の状態をmain関数のローカル変数として確保する（6・7章）。 */
+  /* 1試合分の状態をmain関数のローカル変数として確保する。 */
   Game game;
   /*1フレーム前の状態を確保*/
   Game preGame;
@@ -55,14 +50,14 @@ int main(int argc, char **argv) {
   renderInit();
   /*サウンド関連を設定*/
   soundInit();
-  /* キャラ、盤面、ターン等を初期状態へ。&はgameのアドレス（4章）。 */
+  /* キャラ、盤面、ターン等を初期状態へ。&はgameのアドレス。 */
   gameInit(&game);
   /* 最初の比較で未初期化メモリを読まないよう、初期状態を保存する。 */
   preGame = game;
   /* 入力を待つ前に初期盤面を一度描画キューへ入れる。 */
   renderGame(&game);
 
-  /* 1は常に真なので、DSアプリ終了まで繰り返す無限ループ（10章）。 */
+  /* 1は常に真なので、DSアプリ終了まで繰り返す無限ループ。 */
   while (1) {
     /* 画面更新の境目まで待ち、描画のちらつきを抑える。 */
     swiWaitForVBlank();

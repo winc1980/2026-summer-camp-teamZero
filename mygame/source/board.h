@@ -6,7 +6,6 @@
  * そのため、ルールを変更するとゲーム進行・範囲表示・テストへ同じ結果が
  * 反映される。
  *
- * 参考: 事前資料 1章（ヘッダ）、4章（constポインタ）、5章（配列境界）
  */
 #ifndef BOARD_H
 #define BOARD_H
@@ -15,7 +14,7 @@
 
 /* 全地形を初期状態にする。Gameを書き換えるのでconstなしのポインタ。 */
 void boardInit(Game *game);
-/* (x,y)が8×6盤面の内側ならtrue。配列境界事故を防ぐ（5・11章）。 */
+/* (x,y)が8×6盤面の内側ならtrue。配列境界事故を防ぐ。 */
 bool boardIsInside(int x, int y);
 /* 指定地形へ着地できるか。現在はPLAINだけtrue。 */
 bool boardTerrainIsWalkable(TerrainType terrain);

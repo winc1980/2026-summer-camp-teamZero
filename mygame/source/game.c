@@ -21,22 +21,14 @@
  * - A/B/Cの移動・攻撃範囲はboard.cを変更する
  * - 攻撃力や初期HPはunit.c / game_types.hを変更する
  * - phaseを追加した場合はgameUpdate()と表示側render.cの両方を確認する
- *
- * 参考資料:
- *  事前資料 3章: static関数、引数、戻り値による処理分割
- *  事前資料 4章: Game *を通して同じ試合状態を更新する
- *  事前資料 5章: units[]、message[]、安全な文字列操作
- *  事前資料 6章: Game、Unit、GameInput構造体
- *  事前資料 10章: update関数、enum + switchによる状態遷移
- *  事前資料 11章: 不正な値を早めに拒否する防御的な判定
  *  可変長引数と有限状態機械の具体的な組み方は本作で追加した内容
  */
 
-/* va_list等、引数の個数が変わる関数を作るための標準ヘッダ（資料外）。 */
+/* va_list等、引数の個数が変わる関数を作るための標準ヘッダ。 */
 #include <stdarg.h>
 /* vsnprintfを使うめの標準入出力ヘッダ。 */
 #include <stdio.h>
-/* memsetを使うための文字列・メモリ操作ヘッダ（5章）。 */
+/* memsetを使うための文字列・メモリ操作ヘッダ。 */
 #include <string.h>
 
 #include "board.h"
@@ -46,14 +38,13 @@
 /* P1ならP2、P2ならP1を返す小さな補助関数。 */
 static Player otherPlayer(Player player)
 {
-    /* 三項演算子でif/elseを1つの式として書いてる（2章）。 */
+    /* 三項演算子でif/elseを1つの式として書いてる。 */
     return player == PLAYER_ONE ? PLAYER_TWO : PLAYER_ONE;
 }
 
 /*
  * printfと同様に%d等を使って下画面メッセージを組み立てる
- * ... は可変長引数。事前資料外のC文法。sizeofで配列容量を渡すので、
- * 長すぎる文字列でもmessage[96]を越えて書かない（5章のsnprintfと同じ考え）。
+ * 長すぎる文字列でもmessage[96]を越えて書かない。
  */
 static void gameSetMessage(Game *game, const char *format, ...)
 {
@@ -227,7 +218,7 @@ static void gameUpdateSelectMove(Game *game, GameInput input)
 
     /*
      * ここでは移動を一旦反映するが、行動選択中のBでoriginへ戻せる。
-     * この方式を「仮適用して後からロールバックする」と考えれる（資料外）。
+     * この方式を「仮適用して後からロールバックする」と考えれる。
      */
     unit->x = game->cursorX;
     unit->y = game->cursorY;
@@ -329,7 +320,7 @@ void gameInit(Game *game)
     int i;
 
     /*
-     * memsetはgameが指すメモリ全体を0で埋める（5・7章）。
+     * memsetはgameが指すメモリ全体を0で埋める。
      * sizeof(*game)はポインタの大きさではなく、ポインタ先Gameの大きさ。
      */
     memset(game, 0, sizeof(*game));
@@ -367,7 +358,7 @@ void gameUpdate(Game *game, GameInput input)
     if (game->phase != PHASE_SELECT_ACTION) {
         gameMoveCursor(game, input);
     }
-    /* 現在のphaseだけに入力を渡す。これが状態機械の中心（10章の発展）。 */
+    /* 現在のphaseだけに入力を渡す。これが状態機械の中心。 */
     switch (game->phase) {
         case PHASE_SELECT_UNIT: gameUpdateSelectUnit(game, input); break;
         case PHASE_SELECT_MOVE: gameUpdateSelectMove(game, input); break;

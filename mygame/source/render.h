@@ -5,7 +5,6 @@
  * renderGame()はconst Game *を受け取るため、表示のためにゲーム状態を
  * 書き換えないことを関数の型で約束している。
  *
- * 参考: 事前資料 4章（constポインタ）、10章（更新と描画の分離）
  * VRAM、OAM、VBlankはBlocksDS/libnds固有の内容です。
  */
 #ifndef RENDER_H
