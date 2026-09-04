@@ -5,7 +5,6 @@
  * 呼び出し側はVRAMの先頭、表示座標、文字列、DSの16bit色を渡す。
  * 文章の配置はrender.c、文字データとUTF-8処理はjapanese_text.cが担当すｒ。
  *
- * 参考: 事前資料 4章（ポインタ）、5章（文字列）、8章（ビット演算）
  */
 #ifndef JAPANESE_TEXT_H
 #define JAPANESE_TEXT_H

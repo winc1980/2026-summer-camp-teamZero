@@ -17,14 +17,6 @@
  *  山・川・建造物の通行条件はboardTerrainIsWalkable()から拡張する
  *  terrain[y][x]やunits[i]へ触る前に、必ず境界と配列番号を確認する
  *  ルール変更後はtest/test_rules.cにも対応するケースを追加する
- *
- * 参考資料:
- *  事前資料 3章: 小さな判定関数とstatic関数への分割
- *  事前資料 4章: const Game *で状態をコピーせず読み取る
- *  事前資料 5章: 2次元配列と境界チェック
- *  事前資料 6章: Game内のUnit配列とterrain配列
- *  事前資料 10章: 当たり判定と更新処理の分離
- *  事前資料 11章: 不正な座標・番号を早めに拒否する
  *  A/B/C固有のルールは本作独自の仕様
  */
 
@@ -41,7 +33,7 @@ void boardInit(Game *game)
     int x;
 
     /*
-     * 二重forでterrain[y][x]の48マスをすべて走査する（5章）。
+     * 二重forでterrain[y][x]の48マスをすべて走査する。
      * 外側をyにすると、メモリ上も行ごとに順番にアクセスできる。
      */
     for (y = 0; y < BOARD_HEIGHT; y++) {
@@ -71,7 +63,7 @@ int boardUnitAt(const Game *game, int x, int y)
 
     for (i = 0; i < UNIT_COUNT; i++) {
         /*
-         * &game->units[i]でi番目要素のアドレスを取り、ポインタにする（4章）。
+         * &game->units[i]でi番目要素のアドレスを取り、ポインタにする。
          * const Unit *なので、この関数からユニットを書き換えることはできない。
          */
         const Unit *unit = &game->units[i];
@@ -85,7 +77,7 @@ int boardUnitAt(const Game *game, int x, int y)
 }
 
 /*
- * staticを付けると、この.cファイル内からだけ呼べる補助関数になる（3章）。
+ * staticを付けると、この.cファイル内からだけ呼べる補助関数になる。
  * 着地点が通行可能で、別ユニットに占有されていないか確認。
  */
 static bool boardCanLand(const Game *game, int unitIndex, int x, int y)

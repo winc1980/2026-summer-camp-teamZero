@@ -12,19 +12,11 @@
  *
  * このファイルは文字の変換と描画だけを担当する。文章の内容や表示位置は
  * render.cのrenderStatusScreen()で変更して。
- *
- * 参考資料:
- *  事前資料 2章: uint8_t/uint16_t、符号なし整数、キャスト
- *  事前資料 4章: const char **、ポインタの移動、VRAMポインタ
- *  事前資料 5章: '\0'終端文字列、配列、sizeof
- *  事前資料 7章: static const配列を固定データとして保持する
- *  事前資料 8章: &, |, <<, >>によるUTF-8とドットの処理
- *  UTF-8デコード、Unicode、フォント描画は事前資料外の実装
  */
 
 /* size_t（配列サイズを表す符号なし型）を使う標準ヘッダ。 */
 #include <stddef.h>
-/* uint8_t、uint16_tのビット幅固定整数型を使う標準ヘッダ（2章）。 */
+/* uint8_t、uint16_tのビット幅固定整数型を使う標準ヘッダ。 */
 #include <stdint.h>
 
 #include "japanese_text.h"
@@ -44,7 +36,7 @@ typedef struct {
 } JapaneseGlyph;
 
 /*
- * static constなのでこのファイル専用かつ実行中に変更しない表（3・7章）。
+ * static constなのでこのファイル専用かつ実行中に変更しない表。
  * 各要素は { Unicode番号, {上から8行のビット列} }。
  * 例えば0x40は2進数01000000で、その行の左から2番目だけを塗る。
  * 日本語文字を増やす場合は、対応するUnicode番号と8行データを追加する。
@@ -145,7 +137,7 @@ static const JapaneseGlyph glyphs[] = {
 
 /*
  * textが指すUTF-8先頭1文字をUnicode番号へ変換し、*textを次の文字へ進める。
- * const char **は「文字列ポインタそのものを書き換える」二重ポインタ（4章発展）。
+ * const char **は「文字列ポインタそのものを書き換える」二重ポインタ。
  * このゲームで必要な1〜3バイトUTF-8だけを対象とす、4バイト文字は未対応。
  */
 static uint16_t decodeUtf8(const char **text)
@@ -162,7 +154,7 @@ static uint16_t decodeUtf8(const char **text)
     }
     /* 110xxxxx 10xxxxxx の2バイト文字。マスク後に6bitずらして結合する。 */
     if ((bytes[0] & 0xE0) == 0xC0 && bytes[1] != 0) {
-        /* | はビットOR。分割されていたUnicodeのbit列を1つへつなぐ（8章）。 */
+        /* | はビットOR。分割されていたUnicodeのbit列を1つへつなぐ。 */
         codepoint = (uint16_t)(((bytes[0] & 0x1F) << 6) | (bytes[1] & 0x3F));
         *text += 2;
         return codepoint;
@@ -184,7 +176,7 @@ static uint16_t decodeUtf8(const char **text)
 static const JapaneseGlyph *findGlyph(uint16_t codepoint)
 {
     size_t i;
-    /* sizeof(配列)/sizeof(1要素)で、ハードコードせず要素数を求める（5章）。 */
+    /* sizeof(配列)/sizeof(1要素)で、ハードコードせず要素数を求める。 */
     for (i = 0; i < sizeof(glyphs) / sizeof(glyphs[0]); i++) {
         if (glyphs[i].codepoint == codepoint) return &glyphs[i];
     }
@@ -198,7 +190,7 @@ void japaneseTextDraw(u16 *pixels, int x, int y, const char *text, u16 color)
     /* 改行時に戻る左端を保存 */
     int originX = x;
 
-    /* C文字列の終端'\0'に到達するまで繰り返す（5章）。 */
+    /* C文字列の終端'\0'に到達するまで繰り返す。 */
     while (*text != '\0') {
         uint16_t codepoint;
         const JapaneseGlyph *glyph;

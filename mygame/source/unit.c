@@ -9,11 +9,6 @@
  *  A/B/Cの攻撃力を調整するときはunitAttackForType()を変更する
  *  全キャラクター共通の初期HPはgame_types.hのINITIAL_HPを変更
  *  種類を増やす場合はUnitType、表示、盤面ルール、テストも合わせて更新
- *
- * 参考資料:
- *  事前資料 3章: 引数、戻り値、switchによる関数分割
- *  事前資料 4章: Unit *で呼び出し元の構造体を更新する
- *  事前資料 6章: Unit構造体とunit->hp形式のメンバアクセス
  */
 #include "unit.h"
 
@@ -36,7 +31,7 @@ int unitAttackForType(UnitType type)
  */
 void unitInit(Unit *unit, UnitType type, Player owner, int x, int y)
 {
-    /* ポインタ先の構造体メンバは「unit->type」のように->で指定する（4・6章）。 */
+    /* ポインタ先の構造体メンバは「unit->type」のように->で指定する。 */
     unit->type = type;
     unit->owner = owner;
     unit->x = x;
@@ -50,11 +45,11 @@ void unitInit(Unit *unit, UnitType type, Player owner, int x, int y)
 /* enumが0,1,2の連番であることを利用して、表示文字A,B,Cへ変換する。 */
 char unitTypeLetter(UnitType type)
 {
-    /* キャストでenumを整数として足し、(char)で文字型へ戻す（2章）。 */
+    /* キャストでenumを整数として足し、(char)で文字型へ戻す。 */
     return (char)('A' + (int)type);
 }
 
-/* const char * は「変更しない文字列の先頭アドレス」を表す（4・5章）。 */
+/* const char * は「変更しない文字列の先頭アドレス」を表す。 */
 const char *unitTypeName(UnitType type)
 {
     switch (type) {

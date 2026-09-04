@@ -5,10 +5,8 @@
  * 下画面へターン、案内文、HP、行動メニューを日本語で表示。
  * Gameはconstポインタで受け取り、描画中にルールやHPを変更しない。
  *
- * 現在の盤面とキャラクターは、画像素材が未確定でも遊べるように、
- * 16bitビットマップ背景と32×32スプライトをコード内で生成している。
- * （重要！）graphics/にある既存PNGはビルド対象として残しているが、このMVP描画には
- * まだ接続してない。画像担当が素材を組み込む際は、まず以下を確認。
+ * 草地は画像素材を繰り返して盤面背景へ描き、キャラクターと範囲表示は
+ * 32×32スプライトとして重ねている。
  *
  * 画像変更の入口:
  *  terrainColor()/drawBoard() : 草・山・川・建造物など盤面の見た目
@@ -21,13 +19,7 @@
  * 中央が透明な別スプライトを上から重ねている。そのため、盤面・キャラ画像を
  * 差し替えても、32×32というマスサイズを保てば枠の仕組みを再利用できる。
  *
- * 参考資料:
- *  事前資料 2章: u16、色成分、キャスト
- *  事前資料 4章: VRAMを指すu16 *、読み取り専用のconst Game *
- *  事前資料 5章: ピクセル配列、snprintf、memcmp/memcpy
- *  事前資料 7章: VRAM、static配列、スプライト用メモリ
- *  事前資料 8章: ビット判定とDSの色
- *  事前資料 10章: 更新と描画を分けるゲームループ
+ * 参考:
  *  BlocksDS公式 Backgrounds
  *   https://blocksds.skylyrac.net/tutorial/basic/backgrounds/
  *  BlocksDS公式 Sprites
@@ -38,9 +30,9 @@
 
 /* libndsの画面・背景・スプライト・型を使うための統合ヘッダ。 */
 #include <nds.h>
-/* snprintfで表示行を安全に組み立てるためのC標準ヘッダ（5章）。 */
+/* snprintfで表示行を安全に組み立てるためのC標準ヘッダ。 */
 #include <stdio.h>
-/* memcmp/memcpyで前回状態と比較・保存するための標準ヘッダ（5・7章）。 */
+/* memcmp/memcpyで前回状態と比較・保存するための標準ヘッダ。 */
 #include <string.h>
 
 #include "board.h"
@@ -63,7 +55,7 @@ enum {
 };
 
 /*
- * staticグローバルはこの.cからだけ見える（3章）。
+ * staticグローバルはこの.cからだけ見える。
  * 背景IDはlibndsが返す管理番号、*PixelsはVRAM上の16bitピクセル配列を指す。
  */
 static int boardBackground;
@@ -93,7 +85,7 @@ static u16 makeColor(int r, int g, int b)
 static void clearSprite(u16 *graphics)
 {
     int i;
-    /* 1次元配列として全1024ピクセルを順番に初期化する（5章）。 */
+    /* 1次元配列として全1024ピクセルを順番に初期化する。 */
     for (i = 0; i < TILE_SIZE * TILE_SIZE; i++) graphics[i] = 0;
 }
 
@@ -104,7 +96,7 @@ static void fillRect(u16 *graphics, int x, int y, int width, int height, u16 col
     int column;
     for (row = y; row < y + height; row++) {
         for (column = x; column < x + width; column++) {
-            /* 範囲外へ書かないための境界チェック（5・11章）。 */
+            /* 範囲外へ書かないための境界チェック。 */
             if (column >= 0 && column < TILE_SIZE && row >= 0 && row < TILE_SIZE) {
                 /* 2次元(row,column)を1次元配列番号row*幅+columnへ変換する。 */
                 graphics[row * TILE_SIZE + column] = color;
@@ -115,11 +107,11 @@ static void fillRect(u16 *graphics, int x, int y, int width, int height, u16 col
 
 /*
  * A/B/Cを5×7ドットで表すビット列を返す。
- * unsigned charは8bitの符号なし整数（2・8章）。各ビットが1画素に対応する。
+ * unsigned charは8bitの符号なし整数。各ビットが1画素に対応する。
  */
 static const unsigned char *glyphFor(UnitType type)
 {
-    /* static配列なので関数終了後も消えず、その先頭アドレスを安全に返せる（3・7章）。 */
+    /* static配列なので関数終了後も消えず、その先頭アドレスを安全に返せる。 */
     static const unsigned char glyphA[7] = {14, 17, 17, 31, 17, 17, 17};
     static const unsigned char glyphB[7] = {30, 17, 17, 30, 17, 17, 30};
     static const unsigned char glyphC[7] = {14, 17, 16, 16, 16, 17, 14};
@@ -143,7 +135,7 @@ static void drawLetter(u16 *graphics, UnitType type, u16 color)
         for (column = 0; column < 5; column++) {
             /*
              * 1 << (4-column)で調べたい位置だけ1のマスクを作り、
-             * &でそのドットが立っているか判定する（8章）。
+             * &でそのドットが立っているか判定する。
              */
             if (glyph[row] & (1 << (4 - column))) {
                 fillRect(graphics, offsetX + column * scale, offsetY + row * scale,
@@ -343,7 +335,7 @@ static void renderUnits(const Game *game)
  */
 static void drawBoardIfChanged(const Game *game)
 {
-    /* memcmpは指定バイト数が全て同じなら0を返す（5・7章）。 */
+    /* memcmpは指定バイト数が全て同じなら0を返す。 */
     if (hasLastBoardTerrain &&
         memcmp(lastBoardTerrain, game->terrain, sizeof(lastBoardTerrain)) == 0) {
         return;
@@ -620,7 +612,7 @@ void renderInit(void)
 
     /* メインエンジン（盤面）を上画面、サブエンジン（UI）を下画面へ割り当ててる。 */
     lcdMainOnTop();
-    /* MODE_5_2Dは16bitビットマップ背景を使える2D画面モード（資料外）。 */
+    /* MODE_5_2Dは16bitビットマップ背景を使える2D画面モード。 */
     videoSetMode(MODE_5_2D);
     videoSetModeSub(MODE_5_2D);
     /*
@@ -650,7 +642,7 @@ void renderInit(void)
         for (type = 0; type < TEAM_SIZE; type++) {
             unitGraphics[owner][type] = oamAllocateGfx(&oamMain, SpriteSize_32x32,
                                                        SpriteColorFormat_Bmp);
-            /* owner/typeはintループ変数なのでenum型へ明示キャストする（2章）。 */
+            /* owner/typeはintループ変数なのでenum型へ明示キャストする。 */
             makeUnitGraphics(unitGraphics[owner][type], (Player)owner, (UnitType)type);
         }
     }
