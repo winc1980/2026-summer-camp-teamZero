@@ -87,6 +87,32 @@ static void testCharacterNames(void)
     assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_C), "ブラッドバイト") == 0);
 }
 
+/* 盤面外表示にも使う、A・B・C本来の攻撃形状と陣営ごとの向きを確認する。 */
+static void testAttackPatternOffsets(void)
+{
+    Game game;
+
+    assert(boardIsAttackOffset(UNIT_A, PLAYER_ONE, 0, -1));
+    assert(boardIsAttackOffset(UNIT_A, PLAYER_ONE, 0, -2));
+    assert(!boardIsAttackOffset(UNIT_A, PLAYER_ONE, 0, 1));
+    assert(boardIsAttackOffset(UNIT_A, PLAYER_TWO, 0, 2));
+    assert(boardIsAttackOffset(UNIT_B, PLAYER_ONE, -1, -2));
+    assert(boardIsAttackOffset(UNIT_B, PLAYER_ONE, 0, -2));
+    assert(boardIsAttackOffset(UNIT_B, PLAYER_ONE, 1, -2));
+    assert(!boardIsAttackOffset(UNIT_B, PLAYER_ONE, 0, -1));
+    assert(boardIsAttackOffset(UNIT_C, PLAYER_ONE, -1, -1));
+    assert(boardIsAttackOffset(UNIT_C, PLAYER_TWO, 1, 1));
+    assert(!boardIsAttackOffset(UNIT_C, PLAYER_ONE, 0, -1));
+    assert(!boardIsAttackOffset(UNIT_A, PLAYER_NONE, 0, -1));
+
+    /* 攻撃形状として該当しても、実際の盤面外へは攻撃できない。 */
+    gameInit(&game);
+    game.units[0].x = 0;
+    game.units[0].y = 1;
+    assert(boardIsAttackOffset(UNIT_A, PLAYER_ONE, 0, -2));
+    assert(!boardCanAttackFrom(&game, 0, 0, 1, 0, -1));
+}
+
 /* A/B/Cの移動方向、斜め移動、障害物、着地点ルールを直接確認する。 */
 static void testMovementRules(void)
 {
@@ -463,6 +489,7 @@ int main(void)
     /* 途中のassertが1つでも失敗すれば、その場で終了して問題行を表示する。 */
     testInitialState();
     testCharacterNames();
+    testAttackPatternOffsets();
     testMovementRules();
     testAttackRanges();
     testAttackablePositions();

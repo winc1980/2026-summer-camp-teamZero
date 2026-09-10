@@ -22,6 +22,8 @@ bool boardTerrainIsWalkable(TerrainType terrain);
 int boardUnitAt(const Game *game, int x, int y);
 /* 指定ユニットが目的マスへ移動可能か。 */
 bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y);
+/* 盤面内外や障害物に関係なく、種類と向きに対する攻撃位置の形を確認する。 */
+bool boardIsAttackOffset(UnitType type, Player owner, int dx, int dy);
 /* 指定位置から対象マスへ攻撃が届くか確認。移動先プレビューからも利用できる。 */
 bool boardCanAttackFrom(const Game *game, int attackerIndex, int fromX, int fromY,
                         int targetX, int targetY);
