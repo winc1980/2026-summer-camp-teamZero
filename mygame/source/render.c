@@ -752,8 +752,8 @@ void renderTitle(void)
     for (i = 0; i < 256 * 192; i++) boardPixels[i] = top;
     clearUi();
 
-    fillUiRect(18, 23, 220, 137, panel);
-    drawUiFrame(18, 23, 220, 137, makeColor(8, 18, 31));
+    fillUiRect(18, 23, 220, 148, panel);
+    drawUiFrame(18, 23, 220, 148, makeColor(8, 18, 31));
 
     drawCenteredText(boardPixels, 55, "チーム０のやぼう (かり)", white);
     drawCenteredText(boardPixels, 82, "ふたりたいせん", cyan);
