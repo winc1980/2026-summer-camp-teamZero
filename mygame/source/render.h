@@ -14,6 +14,8 @@
 
 /* 起動時に1回だけ、画面モード・VRAM・スプライト画像を準備する。 */
 void renderInit(void);
+/* 起動時のタイトルと最小限の遊び方を上下画面へ描く。 */
+void renderTitle(void);
 /* 現在のGameから背景・駒・カーソル・下画面を描画用メモリへ用意する。 */
 void renderGame(const Game *game);
 /* VBlank中にOAMの内容を実画面へ反映する。 */

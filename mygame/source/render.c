@@ -714,6 +714,65 @@ void renderInit(void)
     makeActedGraphics(actedGraphics);
 }
 
+/* 半角4px・日本語8pxという描画規則から、1行の表示幅を求める。 */
+static int uiTextWidth(const char *text)
+{
+    int width = 0;
+    const unsigned char *bytes = (const unsigned char *)text;
+
+    while (*bytes != '\0') {
+        if (*bytes < 0x80) {
+            width += 4;
+            bytes++;
+        } else {
+            width += 8;
+            bytes += (*bytes & 0xF0) == 0xE0 ? 3 : 2;
+        }
+    }
+    return width;
+}
+
+/* 指定した画面の中央へ1行を描く。 */
+static void drawCenteredText(u16 *pixels, int y, const char *text, u16 color)
+{
+    japaneseTextDraw(pixels, (256 - uiTextWidth(text)) / 2, y, text, color);
+}
+
+/* 起動直後に、対戦形式と基本操作を短く確認できる画面を描く。 */
+void renderTitle(void)
+{
+    int i;
+    u16 top = makeColor(2, 5, 12);
+    u16 panel = makeColor(3, 7, 15);
+    u16 white = makeColor(31, 31, 31);
+    u16 cyan = makeColor(0, 25, 31);
+    u16 yellow = makeColor(31, 28, 2);
+
+    oamClear(&oamMain, 0, 128);
+    for (i = 0; i < 256 * 192; i++) boardPixels[i] = top;
+    clearUi();
+
+    fillUiRect(18, 23, 220, 148, panel);
+    drawUiFrame(18, 23, 220, 148, makeColor(8, 18, 31));
+
+    drawCenteredText(boardPixels, 55, "チーム０のやぼう (かり)", white);
+    drawCenteredText(boardPixels, 82, "ふたりたいせん", cyan);
+    drawCenteredText(boardPixels, 112, "STARTでゲームかいし", yellow);
+
+    drawCenteredText(uiPixels, 34, "あそびかた", cyan);
+    drawCenteredText(uiPixels, 59, "あいての3たいをたおす", white);
+    drawCenteredText(uiPixels, 82, "じゅうじ:カーソル", white);
+    drawCenteredText(uiPixels, 101, "A:けってい  B:もどる", white);
+    drawCenteredText(uiPixels, 120, "キャラせんたく  >  いどう  >", white);
+    drawCenteredText(uiPixels, 137, "こうげき  または  たいき  >", white);
+    drawCenteredText(uiPixels, 154, "キャラせんたく (3たいぶん)", white);
+    drawCenteredText(uiPixels, 177, "START:ゲームかいし", yellow);
+
+    /* 対戦開始時に盤面と状態画面を必ず描き直す。 */
+    hasLastBoardTerrain = false;
+    hasLastConsoleGame = false;
+}
+
 /* 1フレームのGameから、次の画面内容をOAM/VRAMへ準備。 */
 void renderGame(const Game *game)
 {

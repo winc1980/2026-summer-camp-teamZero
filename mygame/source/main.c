@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
   Game game;
   /*1フレーム前の状態を確保*/
   Game preGame;
+  bool gameStarted = false;
 
   /* (void)へキャストして、意図的な未使用引数だとコンパイラへ伝える。 */
   (void)argc;
@@ -54,8 +55,8 @@ int main(int argc, char **argv) {
   gameInit(&game);
   /* 最初の比較で未初期化メモリを読まないよう、初期状態を保存する。 */
   preGame = game;
-  /* 入力を待つ前に初期盤面を一度描画キューへ入れる。 */
-  renderGame(&game);
+  /* 入力を待つ前にタイトルと遊び方を表示する。 */
+  renderTitle();
 
   /* 1は常に真なので、DSアプリ終了まで繰り返す無限ループ。 */
   while (1) {
@@ -66,7 +67,15 @@ int main(int argc, char **argv) {
     /* DSのハードウェアキー状態を読み込み、keysDown()用に更新する。 */
     scanKeys();
     /* 物理キーを意味付き入力へ変換し、その1フレーム分だけゲームを進める。 */
-    gameUpdate(&game, inputReadShared());
+    GameInput input = inputReadShared();
+    if (!gameStarted) {
+      if (input.restart) {
+        gameStarted = true;
+        renderGame(&game);
+      }
+      continue;
+    }
+    gameUpdate(&game, input);
     /* 更新後の状態から次に表示する背景・駒・文字を準備。 */
     renderGame(&game);
 
