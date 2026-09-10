@@ -86,7 +86,7 @@ static u16 makeColor(int r, int g, int b)
 /* 陣営を示す色を、移動の水色や攻撃の赤と混同しない青・オレンジへ統一する。 */
 static u16 playerColor(Player owner)
 {
-    return owner == PLAYER_ONE ? makeColor(8, 18, 31) : makeColor(31, 18, 2);
+    return owner == PLAYER_ONE ? makeColor(3, 7, 31) : makeColor(31, 18, 2);
 }
 
 /* 32×32スプライト画像を透明色0で埋める。 */
@@ -501,32 +501,34 @@ static int statusUnitIndex(const Game *game)
     return -1;
 }
 
-/* 選択中キャラを中央に置き、実際の盤面ルールから5×5の攻撃範囲図を描く。 */
-static void drawAttackRangeMap(const Game *game, int unitIndex, int left, int top)
+/* 選択中キャラを中央に置き、5×5へ移動の内側色と攻撃の外周色を重ねる。 */
+static void drawTacticalRangeMap(const Game *game, int unitIndex, int left, int top)
 {
     const Unit *unit = &game->units[unitIndex];
     int mapY;
     int mapX;
     u16 grid = makeColor(10, 12, 16);
     u16 empty = makeColor(3, 4, 7);
-    u16 outside = makeColor(1, 1, 2);
-    u16 range = makeColor(24, 5, 4);
+    u16 move = makeColor(0, 18, 24);
+    u16 attack = makeColor(31, 7, 5);
     u16 unitColor = playerColor(unit->owner);
 
     for (mapY = -2; mapY <= 2; mapY++) {
         for (mapX = -2; mapX <= 2; mapX++) {
-            int boardX = unit->x + mapX;
-            int boardY = unit->y + mapY;
             int cellX = left + (mapX + 2) * 10;
             int cellY = top + (mapY + 2) * 10;
-            u16 fill = boardIsInside(boardX, boardY) ? empty : outside;
+            bool center = mapX == 0 && mapY == 0;
+            bool moveShape = boardIsMoveOffset(unit->type, unit->owner, mapX, mapY);
+            bool attackShape = boardIsAttackOffset(unit->type, unit->owner, mapX, mapY);
+            u16 fill = empty;
 
-            if (boardCanAttackFrom(game, unitIndex, unit->x, unit->y, boardX, boardY)) {
-                fill = range;
-            }
-            if (mapX == 0 && mapY == 0) fill = unitColor;
+            if (moveShape) fill = move;
+            if (center) fill = unitColor;
             fillUiRect(cellX, cellY, 10, 10, grid);
             fillUiRect(cellX + 1, cellY + 1, 8, 8, fill);
+            if (!center && attackShape) {
+                drawUiFrame(cellX + 1, cellY + 1, 8, 8, attack);
+            }
         }
     }
 }
@@ -613,8 +615,9 @@ static void renderStatusScreen(const Game *game)
     drawUiFrame(5, 67, 246, 69, makeColor(12, 14, 19));
     if (unitIndex >= 0) {
         const Unit *unit = &game->units[unitIndex];
-        japaneseTextDraw(uiPixels, 10, 69, "こうげきはんい", red);
-        drawAttackRangeMap(game, unitIndex, 10, 80);
+        japaneseTextDraw(uiPixels, 10, 69, "いどう", makeColor(0, 25, 31));
+        japaneseTextDraw(uiPixels, 42, 69, "こうげき", red);
+        drawTacticalRangeMap(game, unitIndex, 10, 80);
         snprintf(line, sizeof(line), "P%d-%c %s", (int)unit->owner + 1,
                  unitTypeLetter(unit->type), unitCharacterName(unit->owner, unit->type));
         japaneseTextDraw(uiPixels, 78, 72, line,

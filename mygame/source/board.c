@@ -93,44 +93,15 @@ static bool boardCanLand(const Game *game, int unitIndex, int x, int y)
     return occupant < 0 || occupant == unitIndex;
 }
 
-/*
- * A/B/Cの移動可能範囲を一か所で判定する中心関数。
- * 「状態を変更せず、質問にboolで答える」関数なので、描画時のハイライトと
- * Aボタン決定時の両方で同じルールを再利用可能。
- */
-bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y)
+/* 盤面端や障害物に関係なく、種類と陣営から本来の移動形状を返す。 */
+bool boardIsMoveOffset(UnitType type, Player owner, int dx, int dy)
 {
-    const Unit *unit;
-    int dx;
-    int dy;
     int forward;
 
-    /*
-     * 不正な番号や盤外座標を先に弾き、危険な配列アクセスを防ぐ。
-     */
-    if (unitIndex < 0 || unitIndex >= UNIT_COUNT || !boardIsInside(x, y)) {
-        return false;
-    }
-    unit = &game->units[unitIndex];
-    if (!unit->alive) {
-        return false;
-    }
-    /* 現在地を選ぶ「移動しない」行動も可 */
-    if (x == unit->x && y == unit->y) {
-        return true;
-    }
-    /* 目的地そのものが地形や他ユニットで塞がっていたら全種類共通で不可。 */
-    if (!boardCanLand(game, unitIndex, x, y)) {
-        return false;
-    }
+    if (owner != PLAYER_ONE && owner != PLAYER_TWO) return false;
+    forward = owner == PLAYER_ONE ? -1 : 1;
 
-    /* 現在地との差分に直すと、盤面上の絶対位置に関係なく同じ式で判定できる。 */
-    dx = x - unit->x;
-    dy = y - unit->y;
-    /* 三項演算子「条件 ? true側 : false側」。P1は上(-1)、P2は下(+1)が前。 */
-    forward = unit->owner == PLAYER_ONE ? -1 : 1;
-
-    switch (unit->type) {
+    switch (type) {
         case UNIT_A:
             /* Aは向きに関係なく、上下左右へ1マス移動する。 */
             return abs(dx) + abs(dy) == 1;
@@ -158,44 +129,42 @@ bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y)
     }
 }
 
-/* 敵の有無に関係なく、指定位置から対象マスへ攻撃が届くかを確認する。 */
-bool boardCanAttackFrom(const Game *game, int attackerIndex, int fromX, int fromY,
-                        int targetX, int targetY)
+/*
+ * A/B/Cの移動可能範囲を一か所で判定する中心関数。
+ * 移動形状に加え、盤面端・地形・他ユニットによる現在の実行可否も確認する。
+ */
+bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y)
 {
-    const Unit *attacker;
+    const Unit *unit;
     int dx;
     int dy;
+
+    if (unitIndex < 0 || unitIndex >= UNIT_COUNT || !boardIsInside(x, y)) {
+        return false;
+    }
+    unit = &game->units[unitIndex];
+    if (!unit->alive) return false;
+    /* 現在地を選ぶ「移動しない」行動も可。 */
+    if (x == unit->x && y == unit->y) return true;
+    if (!boardCanLand(game, unitIndex, x, y)) return false;
+
+    dx = x - unit->x;
+    dy = y - unit->y;
+    return boardIsMoveOffset(unit->type, unit->owner, dx, dy);
+}
+
+/* 盤面端や障害物に関係なく、種類と陣営から本来の攻撃形状を返す。 */
+bool boardIsAttackOffset(UnitType type, Player owner, int dx, int dy)
+{
     int forward;
 
-    /* 配列番号と座標を検証してからunits[]やterrain[][]へアクセスする。 */
-    if (attackerIndex < 0 || attackerIndex >= UNIT_COUNT ||
-        !boardIsInside(fromX, fromY) || !boardIsInside(targetX, targetY)) {
-        return false;
-    }
-    attacker = &game->units[attackerIndex];
-    if (!attacker->alive) {
-        return false;
-    }
-    dx = targetX - fromX;
-    dy = targetY - fromY;
-    forward = attacker->owner == PLAYER_ONE ? -1 : 1;
+    if (owner != PLAYER_ONE && owner != PLAYER_TWO) return false;
+    forward = owner == PLAYER_ONE ? -1 : 1;
 
-    switch (attacker->type) {
+    switch (type) {
         case UNIT_A:
             /* Aは正面の1マス前または2マス前にいる敵1体を攻撃する。 */
-            if (dx != 0 || (dy != forward && dy != forward * 2)) {
-                return false;
-            }
-            if (dy == forward * 2) {
-                int middleY = fromY + forward;
-                int middleUnit = boardUnitAt(game, fromX, middleY);
-                /* 2マス攻撃では、間のキャラや通行不可地形を貫通しない。 */
-                if ((middleUnit >= 0 && middleUnit != attackerIndex) ||
-                    !boardTerrainIsWalkable(game->terrain[middleY][fromX])) {
-                    return false;
-                }
-            }
-            return true;
+            return dx == 0 && (dy == forward || dy == forward * 2);
 
         case UNIT_B:
             /*
@@ -211,6 +180,40 @@ bool boardCanAttackFrom(const Game *game, int attackerIndex, int fromX, int from
         default:
             return false;
     }
+}
+
+/* 敵の有無に関係なく、指定位置から対象マスへ実際に攻撃が届くかを確認する。 */
+bool boardCanAttackFrom(const Game *game, int attackerIndex, int fromX, int fromY,
+                        int targetX, int targetY)
+{
+    const Unit *attacker;
+    int dx;
+    int dy;
+    int forward;
+
+    /* 配列番号と座標を検証してからunits[]やterrain[][]へアクセスする。 */
+    if (attackerIndex < 0 || attackerIndex >= UNIT_COUNT ||
+        !boardIsInside(fromX, fromY) || !boardIsInside(targetX, targetY)) {
+        return false;
+    }
+    attacker = &game->units[attackerIndex];
+    if (!attacker->alive) return false;
+
+    dx = targetX - fromX;
+    dy = targetY - fromY;
+    if (!boardIsAttackOffset(attacker->type, attacker->owner, dx, dy)) return false;
+
+    /* Aの2マス攻撃だけは、間のキャラや通行不可地形を貫通しない。 */
+    forward = attacker->owner == PLAYER_ONE ? -1 : 1;
+    if (attacker->type == UNIT_A && dy == forward * 2) {
+        int middleY = fromY + forward;
+        int middleUnit = boardUnitAt(game, fromX, middleY);
+        if ((middleUnit >= 0 && middleUnit != attackerIndex) ||
+            !boardTerrainIsWalkable(game->terrain[middleY][fromX])) {
+            return false;
+        }
+    }
+    return true;
 }
 
 /* 攻撃者と対象が敵同士で、キャラ固有の攻撃範囲内かを確認する。 */
