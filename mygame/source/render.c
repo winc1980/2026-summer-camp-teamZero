@@ -714,6 +714,39 @@ void renderInit(void)
     makeActedGraphics(actedGraphics);
 }
 
+/* 起動直後に、対戦形式と基本操作を短く確認できる画面を描く。 */
+void renderTitle(void)
+{
+    int i;
+    u16 top = makeColor(2, 5, 12);
+    u16 panel = makeColor(3, 7, 15);
+    u16 white = makeColor(31, 31, 31);
+    u16 cyan = makeColor(0, 25, 31);
+    u16 yellow = makeColor(31, 28, 2);
+
+    oamClear(&oamMain, 0, 128);
+    for (i = 0; i < 256 * 192; i++) boardPixels[i] = top;
+    clearUi();
+
+    fillUiRect(18, 23, 220, 137, panel);
+    drawUiFrame(18, 23, 220, 137, makeColor(8, 18, 31));
+
+    japaneseTextDraw(boardPixels, 76, 55, "TACTICS MVP", white);
+    japaneseTextDraw(boardPixels, 68, 82, "2にんたいせん", cyan);
+    japaneseTextDraw(boardPixels, 56, 112, "STARTでゲームかいし", yellow);
+
+    japaneseTextDraw(uiPixels, 92, 34, "あそびかた", cyan);
+    japaneseTextDraw(uiPixels, 42, 59, "あいての3たいをたおす", white);
+    japaneseTextDraw(uiPixels, 42, 82, "じゅうじ:カーソル", white);
+    japaneseTextDraw(uiPixels, 42, 101, "A:けってい  B:もどる", white);
+    japaneseTextDraw(uiPixels, 42, 124, "いどう > こうげき / たいき", white);
+    japaneseTextDraw(uiPixels, 54, 171, "START:ゲームかいし", yellow);
+
+    /* 対戦開始時に盤面と状態画面を必ず描き直す。 */
+    hasLastBoardTerrain = false;
+    hasLastConsoleGame = false;
+}
+
 /* 1フレームのGameから、次の画面内容をOAM/VRAMへ準備。 */
 void renderGame(const Game *game)
 {
