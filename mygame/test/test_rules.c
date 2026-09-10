@@ -73,12 +73,14 @@ static void testInitialState(void)
 /* 6体の陣営・タイプと、下画面へ出す名前の対応を確認する。 */
 static void testCharacterNames(void)
 {
-    assert(strcmp(unitCharacterName(PLAYER_ONE, UNIT_A), "HERO") == 0);
-    assert(strcmp(unitCharacterName(PLAYER_ONE, UNIT_B), "MAGE") == 0);
-    assert(strcmp(unitCharacterName(PLAYER_ONE, UNIT_C), "ELF") == 0);
-    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_A), "FRANKEN") == 0);
-    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_B), "GHOST") == 0);
-    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_C), "VAMPIRE") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_ONE, UNIT_A), "ゆうしゃ") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_ONE, UNIT_B), "まほうつかい") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_ONE, UNIT_C), "エルフ") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_A), "フランケン") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_B), "おばけ") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_C), "きゅうけつき") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_A), "きりつけ") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_A), "でんげき") == 0);
 }
 
 /* A/B/Cの移動方向、斜め移動、障害物、着地点ルールを直接確認する。 */

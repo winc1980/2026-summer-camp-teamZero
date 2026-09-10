@@ -584,8 +584,13 @@ static void renderStatusScreen(const Game *game)
     }
 
     /* 上端は現在の手番、操作段階、ゲームからの案内文。 */
-    snprintf(line, sizeof(line), "P%d  %s", (int)game->currentPlayer + 1,
-             phaseName(game->phase));
+    if (game->phase == PHASE_SELECT_UNIT) {
+        snprintf(line, sizeof(line), "P%d  %s (どのキャラからでもOK)",
+                 (int)game->currentPlayer + 1, phaseName(game->phase));
+    } else {
+        snprintf(line, sizeof(line), "P%d  %s", (int)game->currentPlayer + 1,
+                 phaseName(game->phase));
+    }
     japaneseTextDraw(uiPixels, 4, 3, line, yellow);
     japaneseTextDraw(uiPixels, 4, 14, game->message, white);
 
@@ -650,11 +655,7 @@ static void renderStatusScreen(const Game *game)
         japaneseTextDraw(uiPixels, 12, 152, "HP ---", makeColor(10, 10, 10));
     }
 
-    if (game->phase == PHASE_SELECT_UNIT) {
-        japaneseTextDraw(uiPixels, 5, 180, "どのキャラからでもOK A:けってい", white);
-    } else {
-        japaneseTextDraw(uiPixels, 5, 180, "A:けってい B:もどる", white);
-    }
+    japaneseTextDraw(uiPixels, 5, 180, "A:けってい B:もどる", white);
 }
 
 /* DSの映像ハードウェアと、実行中に生成する仮画像を起動時に準備。 */
