@@ -86,7 +86,7 @@ static u16 makeColor(int r, int g, int b)
 /* 陣営を示す色を、移動の水色や攻撃の赤と混同しない青・オレンジへ統一する。 */
 static u16 playerColor(Player owner)
 {
-    return owner == PLAYER_ONE ? makeColor(8, 18, 31) : makeColor(31, 18, 2);
+    return owner == PLAYER_ONE ? makeColor(3, 7, 31) : makeColor(31, 18, 2);
 }
 
 /* 32×32スプライト画像を透明色0で埋める。 */
@@ -509,32 +509,25 @@ static void drawTacticalRangeMap(const Game *game, int unitIndex, int left, int 
     int mapX;
     u16 grid = makeColor(10, 12, 16);
     u16 empty = makeColor(3, 4, 7);
-    u16 outside = makeColor(1, 1, 2);
     u16 move = makeColor(0, 18, 24);
-    u16 outsideMove = makeColor(0, 8, 11);
     u16 attack = makeColor(31, 7, 5);
-    u16 outsideAttack = makeColor(15, 5, 4);
     u16 unitColor = playerColor(unit->owner);
 
     for (mapY = -2; mapY <= 2; mapY++) {
         for (mapX = -2; mapX <= 2; mapX++) {
-            int boardX = unit->x + mapX;
-            int boardY = unit->y + mapY;
             int cellX = left + (mapX + 2) * 10;
             int cellY = top + (mapY + 2) * 10;
-            bool inside = boardIsInside(boardX, boardY);
             bool center = mapX == 0 && mapY == 0;
             bool moveShape = boardIsMoveOffset(unit->type, unit->owner, mapX, mapY);
             bool attackShape = boardIsAttackOffset(unit->type, unit->owner, mapX, mapY);
-            u16 fill = inside ? empty : outside;
+            u16 fill = empty;
 
-            if (moveShape) fill = inside ? move : outsideMove;
+            if (moveShape) fill = move;
             if (center) fill = unitColor;
             fillUiRect(cellX, cellY, 10, 10, grid);
             fillUiRect(cellX + 1, cellY + 1, 8, 8, fill);
             if (!center && attackShape) {
-                drawUiFrame(cellX + 1, cellY + 1, 8, 8,
-                            inside ? attack : outsideAttack);
+                drawUiFrame(cellX + 1, cellY + 1, 8, 8, attack);
             }
         }
     }
