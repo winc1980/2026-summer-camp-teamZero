@@ -93,44 +93,15 @@ static bool boardCanLand(const Game *game, int unitIndex, int x, int y)
     return occupant < 0 || occupant == unitIndex;
 }
 
-/*
- * A/B/Cの移動可能範囲を一か所で判定する中心関数。
- * 「状態を変更せず、質問にboolで答える」関数なので、描画時のハイライトと
- * Aボタン決定時の両方で同じルールを再利用可能。
- */
-bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y)
+/* 盤面端や障害物に関係なく、種類と陣営から本来の移動形状を返す。 */
+bool boardIsMoveOffset(UnitType type, Player owner, int dx, int dy)
 {
-    const Unit *unit;
-    int dx;
-    int dy;
     int forward;
 
-    /*
-     * 不正な番号や盤外座標を先に弾き、危険な配列アクセスを防ぐ。
-     */
-    if (unitIndex < 0 || unitIndex >= UNIT_COUNT || !boardIsInside(x, y)) {
-        return false;
-    }
-    unit = &game->units[unitIndex];
-    if (!unit->alive) {
-        return false;
-    }
-    /* 現在地を選ぶ「移動しない」行動も可 */
-    if (x == unit->x && y == unit->y) {
-        return true;
-    }
-    /* 目的地そのものが地形や他ユニットで塞がっていたら全種類共通で不可。 */
-    if (!boardCanLand(game, unitIndex, x, y)) {
-        return false;
-    }
+    if (owner != PLAYER_ONE && owner != PLAYER_TWO) return false;
+    forward = owner == PLAYER_ONE ? -1 : 1;
 
-    /* 現在地との差分に直すと、盤面上の絶対位置に関係なく同じ式で判定できる。 */
-    dx = x - unit->x;
-    dy = y - unit->y;
-    /* 三項演算子「条件 ? true側 : false側」。P1は上(-1)、P2は下(+1)が前。 */
-    forward = unit->owner == PLAYER_ONE ? -1 : 1;
-
-    switch (unit->type) {
+    switch (type) {
         case UNIT_A:
             /* Aは向きに関係なく、上下左右へ1マス移動する。 */
             return abs(dx) + abs(dy) == 1;
@@ -156,6 +127,30 @@ bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y)
             /* 壊れた種類値を移動可能にしない。 */
             return false;
     }
+}
+
+/*
+ * A/B/Cの移動可能範囲を一か所で判定する中心関数。
+ * 移動形状に加え、盤面端・地形・他ユニットによる現在の実行可否も確認する。
+ */
+bool boardCanMoveTo(const Game *game, int unitIndex, int x, int y)
+{
+    const Unit *unit;
+    int dx;
+    int dy;
+
+    if (unitIndex < 0 || unitIndex >= UNIT_COUNT || !boardIsInside(x, y)) {
+        return false;
+    }
+    unit = &game->units[unitIndex];
+    if (!unit->alive) return false;
+    /* 現在地を選ぶ「移動しない」行動も可。 */
+    if (x == unit->x && y == unit->y) return true;
+    if (!boardCanLand(game, unitIndex, x, y)) return false;
+
+    dx = x - unit->x;
+    dy = y - unit->y;
+    return boardIsMoveOffset(unit->type, unit->owner, dx, dy);
 }
 
 /* 盤面端や障害物に関係なく、種類と陣営から本来の攻撃形状を返す。 */

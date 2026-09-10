@@ -511,9 +511,9 @@ static void drawTacticalRangeMap(const Game *game, int unitIndex, int left, int 
     u16 empty = makeColor(3, 4, 7);
     u16 outside = makeColor(1, 1, 2);
     u16 move = makeColor(0, 18, 24);
+    u16 outsideMove = makeColor(0, 8, 11);
     u16 attack = makeColor(31, 7, 5);
     u16 outsideAttack = makeColor(15, 5, 4);
-    u16 white = makeColor(31, 31, 31);
     u16 unitColor = playerColor(unit->owner);
 
     for (mapY = -2; mapY <= 2; mapY++) {
@@ -524,24 +524,17 @@ static void drawTacticalRangeMap(const Game *game, int unitIndex, int left, int 
             int cellY = top + (mapY + 2) * 10;
             bool inside = boardIsInside(boardX, boardY);
             bool center = mapX == 0 && mapY == 0;
-            bool canMove = inside && !center &&
-                boardCanMoveTo(game, unitIndex, boardX, boardY);
+            bool moveShape = boardIsMoveOffset(unit->type, unit->owner, mapX, mapY);
             bool attackShape = boardIsAttackOffset(unit->type, unit->owner, mapX, mapY);
-            bool canAttack = inside && boardCanAttackFrom(game, unitIndex,
-                                                           unit->x, unit->y,
-                                                           boardX, boardY);
             u16 fill = inside ? empty : outside;
 
-            if (canMove) fill = move;
+            if (moveShape) fill = inside ? move : outsideMove;
             if (center) fill = unitColor;
             fillUiRect(cellX, cellY, 10, 10, grid);
             fillUiRect(cellX + 1, cellY + 1, 8, 8, fill);
-            if (center) {
-                drawUiFrame(cellX + 1, cellY + 1, 8, 8, white);
-            } else if (canAttack) {
-                drawUiFrame(cellX + 1, cellY + 1, 8, 8, attack);
-            } else if (!inside && attackShape) {
-                drawUiFrame(cellX + 1, cellY + 1, 8, 8, outsideAttack);
+            if (!center && attackShape) {
+                drawUiFrame(cellX + 1, cellY + 1, 8, 8,
+                            inside ? attack : outsideAttack);
             }
         }
     }

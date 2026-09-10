@@ -113,6 +113,23 @@ static void testAttackPatternOffsets(void)
     assert(!boardCanAttackFrom(&game, 0, 0, 1, 0, -1));
 }
 
+/* 障害物や盤面端に左右されない、A・B・C本来の移動形状を確認する。 */
+static void testMovePatternOffsets(void)
+{
+    assert(boardIsMoveOffset(UNIT_A, PLAYER_ONE, 0, -1));
+    assert(boardIsMoveOffset(UNIT_A, PLAYER_ONE, 1, 0));
+    assert(!boardIsMoveOffset(UNIT_A, PLAYER_ONE, 1, -1));
+    assert(boardIsMoveOffset(UNIT_B, PLAYER_ONE, -1, -1));
+    assert(boardIsMoveOffset(UNIT_B, PLAYER_ONE, 0, -1));
+    assert(!boardIsMoveOffset(UNIT_B, PLAYER_ONE, 0, 1));
+    assert(boardIsMoveOffset(UNIT_B, PLAYER_TWO, 0, 1));
+    assert(boardIsMoveOffset(UNIT_C, PLAYER_ONE, -1, -1));
+    assert(boardIsMoveOffset(UNIT_C, PLAYER_ONE, 0, 1));
+    assert(boardIsMoveOffset(UNIT_C, PLAYER_TWO, 1, 1));
+    assert(!boardIsMoveOffset(UNIT_C, PLAYER_ONE, 1, 1));
+    assert(!boardIsMoveOffset(UNIT_A, PLAYER_NONE, 0, -1));
+}
+
 /* A/B/Cの移動方向、斜め移動、障害物、着地点ルールを直接確認する。 */
 static void testMovementRules(void)
 {
@@ -490,6 +507,7 @@ int main(void)
     testInitialState();
     testCharacterNames();
     testAttackPatternOffsets();
+    testMovePatternOffsets();
     testMovementRules();
     testAttackRanges();
     testAttackablePositions();
