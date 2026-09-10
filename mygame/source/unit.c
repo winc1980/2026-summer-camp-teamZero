@@ -78,3 +78,22 @@ const char *unitSkillName(Player owner, UnitType type)
         default: return "?";
     }
 }
+
+/* 6体の外見と下画面の情報を対応付けるための短い表示名を返す。 */
+const char *unitCharacterName(Player owner, UnitType type)
+{
+    if (owner == PLAYER_ONE) {
+        switch (type) {
+            case UNIT_A: return "HERO";
+            case UNIT_B: return "MAGE";
+            case UNIT_C: return "ELF";
+            default: return "?";
+        }
+    }
+    switch (type) {
+        case UNIT_A: return "FRANKEN";
+        case UNIT_B: return "GHOST";
+        case UNIT_C: return "VAMPIRE";
+        default: return "?";
+    }
+}

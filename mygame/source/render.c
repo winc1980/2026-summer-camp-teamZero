@@ -49,6 +49,7 @@
 enum {
     OAM_CURSOR = 0,
     OAM_UNIT_BASE = 8,
+    OAM_ACTED_BASE = 16,
     OAM_MOVE_BASE = 32,
     OAM_ATTACK_BASE = 40,
     OAM_HIGHLIGHT_MAX = 8
@@ -67,6 +68,7 @@ static u16 *unitGraphics[2][TEAM_SIZE];
 static u16 *cursorGraphics;
 static u16 *moveGraphics;
 static u16 *attackGraphics;
+static u16 *actedGraphics;
 /* 下画面を毎フレーム描き直さないための、前回表示したGameのコピー。 */
 static Game lastConsoleGame;
 static bool hasLastConsoleGame;
@@ -179,6 +181,22 @@ static void makeBorderGraphics(u16 *graphics, u16 color, bool checker)
     fillRect(graphics, TILE_SIZE - 2, 0, 2, TILE_SIZE, color);
 }
 
+/* 行動済みユニットの右上へ重ねる、小さな灰色の印を作る。 */
+static void makeActedGraphics(u16 *graphics)
+{
+    int i;
+    u16 background = makeColor(5, 5, 6);
+    u16 foreground = makeColor(24, 24, 24);
+
+    clearSprite(graphics);
+    fillRect(graphics, 19, 1, 12, 12, background);
+    fillRect(graphics, 20, 2, 10, 10, makeColor(10, 10, 11));
+    for (i = 0; i < 7; i++) {
+        fillRect(graphics, 22 + i, 4 + i, 2, 2, foreground);
+        fillRect(graphics, 28 - i, 4 + i, 2, 2, foreground);
+    }
+}
+
 /* 地形enumを仮表示色へ変換する。最終画像へ差し替えるまでの表示。 */
 static u16 terrainColor(TerrainType terrain)
 {
@@ -267,9 +285,9 @@ static void renderMoveAttackPreview(const Game *game)
         for (x = 0; x < BOARD_WIDTH && count < OAM_HIGHLIGHT_MAX; x++) {
             if (boardCanAttackFrom(game, game->selectedUnit,
                                    game->cursorX, game->cursorY, x, y)) {
-                /* 移動範囲より手前、ユニットとカーソルより奥へ赤い枠を置く。 */
+                /* ユニットより手前へ置き、攻撃可能な敵の上でも見えるようにする。 */
                 setBitmapSprite(OAM_ATTACK_BASE + count, x * TILE_SIZE, y * TILE_SIZE,
-                                1, 8, attackGraphics);
+                                0, 8, attackGraphics);
                 count++;
             }
         }
@@ -306,7 +324,7 @@ static void renderHighlights(const Game *game)
                 setBitmapSprite(OAM_ATTACK_BASE + count,
                                 game->units[i].x * TILE_SIZE,
                                 game->units[i].y * TILE_SIZE,
-                                2, 8, attackGraphics);
+                                0, 8, attackGraphics);
                 count++;
             }
         }
@@ -325,6 +343,10 @@ static void renderUnits(const Game *game)
         setBitmapSprite(OAM_UNIT_BASE + i, unit->x * TILE_SIZE, unit->y * TILE_SIZE,
                         1, unit->acted ? 9 : 15,
                         unitGraphics[unit->owner][unit->type]);
+        if (unit->acted) {
+            setBitmapSprite(OAM_ACTED_BASE + i, unit->x * TILE_SIZE, unit->y * TILE_SIZE,
+                            0, 15, actedGraphics);
+        }
     }
 }
 
@@ -459,7 +481,7 @@ static void drawActionButton(int x, int y, int width, const char *label,
     japaneseTextDraw(uiPixels, x + 35, y + offset + 12, label, foreground);
 }
 
-/* 選択確定済みのキャラ、またはカーソルを合わせている自軍キャラを返す。 */
+/* 選択確定済みのキャラ、またはカーソルを合わせている生存キャラを返す。 */
 static int statusUnitIndex(const Game *game)
 {
     int index;
@@ -469,7 +491,7 @@ static int statusUnitIndex(const Game *game)
         return game->selectedUnit;
     }
     index = boardUnitAt(game, game->cursorX, game->cursorY);
-    if (index >= 0 && game->units[index].owner == game->currentPlayer) return index;
+    if (index >= 0 && game->units[index].alive) return index;
     return -1;
 }
 
@@ -581,15 +603,19 @@ static void renderStatusScreen(const Game *game)
     if (unitIndex >= 0) {
         const Unit *unit = &game->units[unitIndex];
         drawAttackRangeMap(game, unitIndex, 10, 76);
-        snprintf(line, sizeof(line), "P%d %c", (int)unit->owner + 1,
-                 unitTypeLetter(unit->type));
+        snprintf(line, sizeof(line), "P%d-%c %s", (int)unit->owner + 1,
+                 unitTypeLetter(unit->type), unitCharacterName(unit->owner, unit->type));
         japaneseTextDraw(uiPixels, 66, 76, line,
                          unit->owner == PLAYER_ONE ? blue : red);
         snprintf(line, sizeof(line), "ATK %d", unit->attack);
         japaneseTextDraw(uiPixels, 66, 90, line, white);
         japaneseTextDraw(uiPixels, 66, 104,
                          unitSkillName(unit->owner, unit->type), white);
-        japaneseTextDraw(uiPixels, 66, 118, "RANGE", red);
+        snprintf(line, sizeof(line), "SINGLE %s",
+                 unit->owner != game->currentPlayer ? "ENEMY" :
+                 (unit->acted ? "DONE" : "READY"));
+        japaneseTextDraw(uiPixels, 66, 118, line,
+                         unit->owner != game->currentPlayer ? red : yellow);
     } else {
         japaneseTextDraw(uiPixels, 12, 90, "キャラをえらぶ", white);
     }
@@ -661,13 +687,15 @@ void renderInit(void)
             makeUnitGraphics(unitGraphics[owner][type], (Player)owner, (UnitType)type);
         }
     }
-    /* カーソル、移動範囲、攻撃範囲の3枚も同じ32×32で確保する。 */
+    /* カーソル、移動・攻撃範囲、行動済み印も同じ32×32で確保する。 */
     cursorGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
     moveGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
     attackGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
+    actedGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
     makeBorderGraphics(cursorGraphics, makeColor(31, 31, 0), false);
     makeBorderGraphics(moveGraphics, makeColor(0, 25, 31), true);
     makeBorderGraphics(attackGraphics, makeColor(31, 5, 2), true);
+    makeActedGraphics(actedGraphics);
 }
 
 /* 1フレームのGameから、次の画面内容をOAM/VRAMへ準備。 */
@@ -677,7 +705,7 @@ void renderGame(const Game *game)
     drawBoardIfChanged(game);
     /* 前フレームのスプライト登録を一旦消し、現状態から登録し直す。 */
     oamClear(&oamMain, 0, 128);
-    /* priorityはカーソル0、ユニット1、ハイライト2、背景3の手前順。 */
+    /* 攻撃範囲と行動済み印はユニットより手前、カーソルはOAM番号で最前面。 */
     renderHighlights(game);
     renderUnits(game);
     setBitmapSprite(OAM_CURSOR, game->cursorX * TILE_SIZE, game->cursorY * TILE_SIZE,

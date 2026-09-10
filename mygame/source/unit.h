@@ -21,5 +21,7 @@ char unitTypeLetter(UnitType type);
 const char *unitTypeName(UnitType type);
 /* 陣営とA・B・Cの組み合わせに対応する技名を返す。 */
 const char *unitSkillName(Player owner, UnitType type);
+/* 陣営とA・B・Cの組み合わせに対応する短いキャラクター名を返す。 */
+const char *unitCharacterName(Player owner, UnitType type);
 
 #endif /* UNIT_H */
