@@ -66,8 +66,9 @@ static void testInitialState(void)
     assert(game.units[0].type == UNIT_A && game.units[0].x == 2 && game.units[0].y == 5);
     assert(game.units[1].type == UNIT_B && game.units[1].x == 3 && game.units[1].y == 5);
     assert(game.units[2].type == UNIT_C && game.units[2].x == 4 && game.units[2].y == 5);
-    assert(game.units[3].type == UNIT_A && game.units[3].x == 2 && game.units[3].y == 0);
-    assert(game.units[5].type == UNIT_C && game.units[5].x == 4 && game.units[5].y == 0);
+    assert(game.units[3].type == UNIT_A && game.units[3].x == 4 && game.units[3].y == 0);
+    assert(game.units[4].type == UNIT_B && game.units[4].x == 3 && game.units[4].y == 0);
+    assert(game.units[5].type == UNIT_C && game.units[5].x == 2 && game.units[5].y == 0);
 }
 
 /* 6体の陣営・タイプと、下画面へ出す名前の対応を確認する。 */
@@ -446,7 +447,7 @@ static void testTurnChangesAfterAllUnitsAct(void)
     makeFocusedUnitWait(&game);
     assert(game.currentPlayer == PLAYER_TWO);
     assert(game.phase == PHASE_SELECT_UNIT);
-    assert(game.cursorX == 2 && game.cursorY == 0);
+    assert(game.cursorX == 4 && game.cursorY == 0);
 }
 
 /* 行動メニューの方向入力が、黄色い盤面カーソルを動かさないことを確認する。 */
