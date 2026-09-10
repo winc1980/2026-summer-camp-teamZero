@@ -83,10 +83,10 @@ static u16 makeColor(int r, int g, int b)
     return ARGB16(1, r, g, b);
 }
 
-/* 陣営を示す色を、移動の水色や攻撃の赤と混同しない青・紫へ統一する。 */
+/* 陣営を示す色を、移動の水色や攻撃の赤と混同しない青・オレンジへ統一する。 */
 static u16 playerColor(Player owner)
 {
-    return owner == PLAYER_ONE ? makeColor(8, 18, 31) : makeColor(23, 9, 31);
+    return owner == PLAYER_ONE ? makeColor(8, 18, 31) : makeColor(31, 18, 2);
 }
 
 /* 32×32スプライト画像を透明色0で埋める。 */
@@ -156,8 +156,8 @@ static void drawLetter(u16 *graphics, UnitType type, u16 color)
 /* プレイヤー色の本体・白枠・黄色文字を組み合わせて駒画像を作る。 */
 static void makeUnitGraphics(u16 *graphics, Player owner, UnitType type)
 {
-    /* P1は青、P2は紫。攻撃範囲の赤とは別の役割として判別できる色にする。 */
-    u16 body = owner == PLAYER_ONE ? makeColor(5, 13, 30) : makeColor(19, 5, 25);
+    /* P1は青、P2はオレンジ。攻撃範囲の赤とは別の役割として判別できる色にする。 */
+    u16 body = owner == PLAYER_ONE ? makeColor(5, 13, 30) : makeColor(27, 13, 1);
     clearSprite(graphics);
     fillRect(graphics, 3, 3, 26, 26, makeColor(31, 31, 31));
     fillRect(graphics, 5, 5, 22, 22, body);
@@ -550,7 +550,7 @@ static void renderStatusScreen(const Game *game)
     u16 white = makeColor(31, 31, 31);
     u16 yellow = makeColor(31, 28, 2);
     u16 blue = playerColor(PLAYER_ONE);
-    u16 purple = playerColor(PLAYER_TWO);
+    u16 orange = playerColor(PLAYER_TWO);
     u16 red = makeColor(31, 9, 9);
     u16 panel = makeColor(3, 5, 9);
     bool actionPhase = game->phase == PHASE_SELECT_ACTION;
@@ -573,7 +573,7 @@ static void renderStatusScreen(const Game *game)
 
     /* 勝敗決定後は通常の操作UIを隠し、結果と再戦方法だけを表示する。 */
     if (game->phase == PHASE_GAME_OVER) {
-        u16 winnerColor = game->winner == PLAYER_ONE ? blue : purple;
+        u16 winnerColor = game->winner == PLAYER_ONE ? blue : orange;
 
         fillUiRect(20, 45, 216, 96, panel);
         drawUiFrame(20, 45, 216, 96, winnerColor);
@@ -608,25 +608,27 @@ static void renderStatusScreen(const Game *game)
     drawUiFrame(5, 67, 246, 69, makeColor(12, 14, 19));
     if (unitIndex >= 0) {
         const Unit *unit = &game->units[unitIndex];
-        drawAttackRangeMap(game, unitIndex, 10, 76);
+        japaneseTextDraw(uiPixels, 10, 69, "こうげきはんい", red);
+        drawAttackRangeMap(game, unitIndex, 10, 80);
         snprintf(line, sizeof(line), "P%d-%c %s", (int)unit->owner + 1,
                  unitTypeLetter(unit->type), unitCharacterName(unit->owner, unit->type));
-        japaneseTextDraw(uiPixels, 66, 76, line,
+        japaneseTextDraw(uiPixels, 78, 72, line,
                          playerColor(unit->owner));
-        snprintf(line, sizeof(line), "ATK %d", unit->attack);
-        japaneseTextDraw(uiPixels, 66, 90, line, white);
-        japaneseTextDraw(uiPixels, 66, 104,
+        snprintf(line, sizeof(line), "こうげきりょく %d", unit->attack);
+        japaneseTextDraw(uiPixels, 78, 84, line, white);
+        japaneseTextDraw(uiPixels, 78, 96,
                          unitSkillName(unit->owner, unit->type), white);
-        snprintf(line, sizeof(line), "SINGLE %s",
-                 unit->owner != game->currentPlayer ? "ENEMY" :
-                 (unit->acted ? "DONE" : "READY"));
-        japaneseTextDraw(uiPixels, 66, 118, line,
+        japaneseTextDraw(uiPixels, 78, 108, "たんたいこうげき", red);
+        snprintf(line, sizeof(line), "%s",
+                 unit->owner != game->currentPlayer ? "てき" :
+                 (unit->acted ? "こうどうずみ" : "みこうどう"));
+        japaneseTextDraw(uiPixels, 78, 120, line,
                          unit->owner != game->currentPlayer ? red : yellow);
     } else {
         japaneseTextDraw(uiPixels, 12, 90, "キャラをえらぶ", white);
     }
     drawTeamSummary(game, PLAYER_ONE, 158, 80, blue);
-    drawTeamSummary(game, PLAYER_TWO, 158, 96, purple);
+    drawTeamSummary(game, PLAYER_TWO, 158, 96, orange);
 
     /* 選択中またはカーソル位置のキャラを、数値と大きなHPゲージで表示する。 */
     fillUiRect(5, 141, 246, 30, panel);
@@ -648,7 +650,11 @@ static void renderStatusScreen(const Game *game)
         japaneseTextDraw(uiPixels, 12, 152, "HP ---", makeColor(10, 10, 10));
     }
 
-    japaneseTextDraw(uiPixels, 5, 180, "A:けってい B:もどる", white);
+    if (game->phase == PHASE_SELECT_UNIT) {
+        japaneseTextDraw(uiPixels, 5, 180, "どのキャラからでもOK A:けってい", white);
+    } else {
+        japaneseTextDraw(uiPixels, 5, 180, "A:けってい B:もどる", white);
+    }
 }
 
 /* DSの映像ハードウェアと、実行中に生成する仮画像を起動時に準備。 */
