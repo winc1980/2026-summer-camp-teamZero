@@ -77,10 +77,14 @@ static void testCharacterNames(void)
     assert(strcmp(unitCharacterName(PLAYER_ONE, UNIT_B), "まほうつかい") == 0);
     assert(strcmp(unitCharacterName(PLAYER_ONE, UNIT_C), "エルフ") == 0);
     assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_A), "フランケン") == 0);
-    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_B), "おばけ") == 0);
-    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_C), "きゅうけつき") == 0);
-    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_A), "きりつけ") == 0);
-    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_A), "でんげき") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_B), "ゴースト") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_C), "ヴァンパイア") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_A), "せいなるいちげき") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_B), "サンダースパイク") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_C), "フェアリーアロー") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_A), "パワースマッシュ") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_B), "ポルターガイスト") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_C), "ブラッドバイト") == 0);
 }
 
 /* A/B/Cの移動方向、斜め移動、障害物、着地点ルールを直接確認する。 */

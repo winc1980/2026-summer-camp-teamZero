@@ -65,16 +65,16 @@ const char *unitSkillName(Player owner, UnitType type)
 {
     if (owner == PLAYER_ONE) {
         switch (type) {
-            case UNIT_A: return "きりつけ";
-            case UNIT_B: return "まほう";
-            case UNIT_C: return "ひかり";
+            case UNIT_A: return "せいなるいちげき";
+            case UNIT_B: return "サンダースパイク";
+            case UNIT_C: return "フェアリーアロー";
             default: return "?";
         }
     }
     switch (type) {
-        case UNIT_A: return "でんげき";
-        case UNIT_B: return "れいき";
-        case UNIT_C: return "かみつき";
+        case UNIT_A: return "パワースマッシュ";
+        case UNIT_B: return "ポルターガイスト";
+        case UNIT_C: return "ブラッドバイト";
         default: return "?";
     }
 }
@@ -92,8 +92,8 @@ const char *unitCharacterName(Player owner, UnitType type)
     }
     switch (type) {
         case UNIT_A: return "フランケン";
-        case UNIT_B: return "おばけ";
-        case UNIT_C: return "きゅうけつき";
+        case UNIT_B: return "ゴースト";
+        case UNIT_C: return "ヴァンパイア";
         default: return "?";
     }
 }
