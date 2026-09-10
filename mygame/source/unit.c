@@ -60,13 +60,21 @@ const char *unitTypeName(UnitType type)
     }
 }
 
-/* 正式な技名が決まるまでの仮名。後からこの一覧だけを差し替えればよい。 */
-const char *unitSkillName(UnitType type)
+/* 陣営と種類に対応する技名を返す。 */
+const char *unitSkillName(Player owner, UnitType type)
 {
+    if (owner == PLAYER_ONE) {
+        switch (type) {
+            case UNIT_A: return "SLASH";
+            case UNIT_B: return "MAGIC";
+            case UNIT_C: return "LIGHT";
+            default: return "?";
+        }
+    }
     switch (type) {
-        case UNIT_A: return "SKILL A";
-        case UNIT_B: return "SKILL B";
-        case UNIT_C: return "SKILL C";
-        default: return "SKILL ?";
+        case UNIT_A: return "SPARK";
+        case UNIT_B: return "SPIRIT";
+        case UNIT_C: return "BITE";
+        default: return "?";
     }
 }

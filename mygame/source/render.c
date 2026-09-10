@@ -587,7 +587,8 @@ static void renderStatusScreen(const Game *game)
                          unit->owner == PLAYER_ONE ? blue : red);
         snprintf(line, sizeof(line), "ATK %d", unit->attack);
         japaneseTextDraw(uiPixels, 66, 90, line, white);
-        japaneseTextDraw(uiPixels, 66, 104, unitSkillName(unit->type), white);
+        japaneseTextDraw(uiPixels, 66, 104,
+                         unitSkillName(unit->owner, unit->type), white);
         japaneseTextDraw(uiPixels, 66, 118, "RANGE", red);
     } else {
         japaneseTextDraw(uiPixels, 12, 90, "キャラをえらぶ", white);
