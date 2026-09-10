@@ -65,16 +65,35 @@ const char *unitSkillName(Player owner, UnitType type)
 {
     if (owner == PLAYER_ONE) {
         switch (type) {
-            case UNIT_A: return "SLASH";
-            case UNIT_B: return "MAGIC";
-            case UNIT_C: return "LIGHT";
+            case UNIT_A: return "せいなるいちげき";
+            case UNIT_B: return "サンダースパイク";
+            case UNIT_C: return "フェアリーアロー";
             default: return "?";
         }
     }
     switch (type) {
-        case UNIT_A: return "SPARK";
-        case UNIT_B: return "SPIRIT";
-        case UNIT_C: return "BITE";
+        case UNIT_A: return "パワースマッシュ";
+        case UNIT_B: return "ポルターガイスト";
+        case UNIT_C: return "ブラッドバイト";
+        default: return "?";
+    }
+}
+
+/* 6体の外見と下画面の情報を対応付けるための短い表示名を返す。 */
+const char *unitCharacterName(Player owner, UnitType type)
+{
+    if (owner == PLAYER_ONE) {
+        switch (type) {
+            case UNIT_A: return "ゆうしゃ";
+            case UNIT_B: return "まほうつかい";
+            case UNIT_C: return "エルフ";
+            default: return "?";
+        }
+    }
+    switch (type) {
+        case UNIT_A: return "フランケン";
+        case UNIT_B: return "ゴースト";
+        case UNIT_C: return "ヴァンパイア";
         default: return "?";
     }
 }

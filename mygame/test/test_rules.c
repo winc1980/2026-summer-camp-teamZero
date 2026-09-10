@@ -15,9 +15,12 @@
 #include <assert.h>
 /* putsで最終成功メッセージを表示する標準ヘッダ。 */
 #include <stdio.h>
+/* strcmpで画面表示用の固定名を確認するための標準ヘッダ。 */
+#include <string.h>
 
 #include "board.h"
 #include "game.h"
+#include "unit.h"
 
 /* 何も押していない1フレーム分の入力を作る。 */
 static GameInput noInput(void)
@@ -65,6 +68,23 @@ static void testInitialState(void)
     assert(game.units[2].type == UNIT_C && game.units[2].x == 4 && game.units[2].y == 5);
     assert(game.units[3].type == UNIT_A && game.units[3].x == 2 && game.units[3].y == 0);
     assert(game.units[5].type == UNIT_C && game.units[5].x == 4 && game.units[5].y == 0);
+}
+
+/* 6体の陣営・タイプと、下画面へ出す名前の対応を確認する。 */
+static void testCharacterNames(void)
+{
+    assert(strcmp(unitCharacterName(PLAYER_ONE, UNIT_A), "ゆうしゃ") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_ONE, UNIT_B), "まほうつかい") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_ONE, UNIT_C), "エルフ") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_A), "フランケン") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_B), "ゴースト") == 0);
+    assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_C), "ヴァンパイア") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_A), "せいなるいちげき") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_B), "サンダースパイク") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_C), "フェアリーアロー") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_A), "パワースマッシュ") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_B), "ポルターガイスト") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_C), "ブラッドバイト") == 0);
 }
 
 /* A/B/Cの移動方向、斜め移動、障害物、着地点ルールを直接確認する。 */
@@ -442,6 +462,7 @@ int main(void)
 {
     /* 途中のassertが1つでも失敗すれば、その場で終了して問題行を表示する。 */
     testInitialState();
+    testCharacterNames();
     testMovementRules();
     testAttackRanges();
     testAttackablePositions();
