@@ -755,17 +755,18 @@ void renderTitle(void)
     fillUiRect(18, 23, 220, 137, panel);
     drawUiFrame(18, 23, 220, 137, makeColor(8, 18, 31));
 
-    drawCenteredText(boardPixels, 55, "チーム0のやぼう(かり)", white);
-    drawCenteredText(boardPixels, 82, "2にんたいせん", cyan);
+    drawCenteredText(boardPixels, 55, "チーム０のやぼう (かり)", white);
+    drawCenteredText(boardPixels, 82, "ふたりたいせん", cyan);
     drawCenteredText(boardPixels, 112, "STARTでゲームかいし", yellow);
 
     drawCenteredText(uiPixels, 34, "あそびかた", cyan);
     drawCenteredText(uiPixels, 59, "あいての3たいをたおす", white);
     drawCenteredText(uiPixels, 82, "じゅうじ:カーソル", white);
     drawCenteredText(uiPixels, 101, "A:けってい  B:もどる", white);
-    drawCenteredText(uiPixels, 124, "キャラせんたく  >  いどう  >", white);
-    drawCenteredText(uiPixels, 143, "こうげき  または  たいき", white);
-    drawCenteredText(uiPixels, 171, "START:ゲームかいし", yellow);
+    drawCenteredText(uiPixels, 120, "キャラせんたく  >  いどう  >", white);
+    drawCenteredText(uiPixels, 137, "こうげき  または  たいき  >", white);
+    drawCenteredText(uiPixels, 154, "キャラせんたく (3たいぶん)", white);
+    drawCenteredText(uiPixels, 177, "START:ゲームかいし", yellow);
 
     /* 対戦開始時に盤面と状態画面を必ず描き直す。 */
     hasLastBoardTerrain = false;
