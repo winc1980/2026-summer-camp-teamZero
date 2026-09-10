@@ -17,10 +17,20 @@ int unitAttackForType(UnitType type)
 {
     /* switchは1つの値に応じて処理を分岐する。各caseはenum値に対応。 */
     switch (type) {
-        case UNIT_A: return 60;
-        case UNIT_B: return 70;
-        case UNIT_C: return 40;
+        case UNIT_A: return 40;
+        case UNIT_B: return 30;
+        case UNIT_C: return 30;
         /* 想定外の値が来ても未定義の値を返さないための安全策。 */
+        default: return 0;
+    }
+}
+
+int unitAwakenedAttackForType(UnitType type)
+{
+    switch (type) {
+        case UNIT_A: return 70;
+        case UNIT_B: return 40;
+        case UNIT_C: return 40;
         default: return 0;
     }
 }
@@ -40,6 +50,7 @@ void unitInit(Unit *unit, UnitType type, Player owner, int x, int y)
     unit->attack = unitAttackForType(type);
     unit->alive = true;
     unit->acted = false;
+    unit->awakened = false;
 }
 
 /* enumが0,1,2の連番であることを利用して、表示文字A,B,Cへ変換する。 */
@@ -61,20 +72,30 @@ const char *unitTypeName(UnitType type)
 }
 
 /* 陣営と種類に対応する技名を返す。 */
-const char *unitSkillName(Player owner, UnitType type)
+const char *unitSkillName(Player owner, UnitType type, bool awakened)
 {
     if (owner == PLAYER_ONE) {
         switch (type) {
-            case UNIT_A: return "せいなるいちげき";
-            case UNIT_B: return "サンダースパイク";
-            case UNIT_C: return "フェアリーアロー";
+            case UNIT_A: return awakened ? "せいなるいちげき" : "ざんげき";
+            case UNIT_B: return awakened ? "サンダースパーク" : "サンダースパイク";
+            case UNIT_C: return awakened ? "フェアリーブレス" : "フェアリーアロー";
             default: return "?";
         }
     }
     switch (type) {
-        case UNIT_A: return "パワースマッシュ";
-        case UNIT_B: return "ポルターガイスト";
-        case UNIT_C: return "ブラッドバイト";
+        case UNIT_A: return awakened ? "ボルトクラッシュ" : "パワースマッシュ";
+        case UNIT_B: return awakened ? "ナイトメアストーム" : "ポルターガイスト";
+        case UNIT_C: return awakened ? "ブラッドドレイン" : "ブラッドバイト";
+        default: return "?";
+    }
+}
+
+const char *unitAwakeningEffectName(UnitType type)
+{
+    switch (type) {
+        case UNIT_A: return "たて2マス はんい";
+        case UNIT_B: return "よこ3マス はんい";
+        case UNIT_C: return "1たい + HP20かいふく";
         default: return "?";
     }
 }

@@ -379,6 +379,7 @@ static const char *phaseName(GamePhase phase)
 {
     switch (phase) {
         case PHASE_SELECT_UNIT: return "キャラせんたく";
+        case PHASE_SELECT_AWAKENING: return "かくせいキャラせんたく";
         case PHASE_SELECT_MOVE: return "いどうさきせんたく";
         case PHASE_SELECT_ACTION: return "こうどうせんたく";
         case PHASE_SELECT_TARGET: return "てきせんたく";
@@ -544,6 +545,37 @@ static void drawTeamSummary(const Game *game, Player owner, int x, int y, u16 co
     japaneseTextDraw(uiPixels, x, y, line, color);
 }
 
+/* 劣勢側が生存者から覚醒させる1体を選ぶ間だけ表示する専用画面。 */
+static void renderAwakeningScreen(const Game *game, u16 white, u16 yellow, u16 panel)
+{
+    int unitIndex = boardUnitAt(game, game->cursorX, game->cursorY);
+    char line[96];
+    u16 accent = playerColor(game->currentPlayer);
+
+    snprintf(line, sizeof(line), "P%d  かくせいキャラせんたく",
+             (int)game->currentPlayer + 1);
+    japaneseTextDraw(uiPixels, 4, 5, line, yellow);
+    japaneseTextDraw(uiPixels, 4, 18, "のこった2たいから 1たいをえらぶ", white);
+    fillUiRect(12, 40, 232, 112, panel);
+    drawUiFrame(12, 40, 232, 112, accent);
+
+    if (unitIndex >= 0) {
+        const Unit *unit = &game->units[unitIndex];
+        snprintf(line, sizeof(line), "P%d-%c %s", (int)unit->owner + 1,
+                 unitTypeLetter(unit->type), unitCharacterName(unit->owner, unit->type));
+        japaneseTextDraw(uiPixels, 28, 55, line, accent);
+        japaneseTextDraw(uiPixels, 28, 75, "かくせいご", yellow);
+        japaneseTextDraw(uiPixels, 28, 89,
+                         unitSkillName(unit->owner, unit->type, true), white);
+        snprintf(line, sizeof(line), "こうげきりょく %d",
+                 unitAwakenedAttackForType(unit->type));
+        japaneseTextDraw(uiPixels, 28, 105, line, white);
+        snprintf(line, sizeof(line), "こうか %s", unitAwakeningEffectName(unit->type));
+        japaneseTextDraw(uiPixels, 28, 121, line, white);
+    }
+    japaneseTextDraw(uiPixels, 18, 165, "じゅうじ:えらぶ  A:かくせい", white);
+}
+
 /* Gameの状態を日本語の情報画面として下画面へ描く。 */
 static void renderStatusScreen(const Game *game)
 {
@@ -582,6 +614,11 @@ static void renderStatusScreen(const Game *game)
         snprintf(line, sizeof(line), "プレイヤー%dのかち!", (int)game->winner + 1);
         japaneseTextDraw(uiPixels, 64, 76, line, winnerColor);
         japaneseTextDraw(uiPixels, 64, 108, "START:もういちど", white);
+        return;
+    }
+
+    if (game->phase == PHASE_SELECT_AWAKENING) {
+        renderAwakeningScreen(game, white, yellow, panel);
         return;
     }
 
@@ -625,9 +662,12 @@ static void renderStatusScreen(const Game *game)
         snprintf(line, sizeof(line), "こうげきりょく %d", unit->attack);
         japaneseTextDraw(uiPixels, 78, 84, line, white);
         japaneseTextDraw(uiPixels, 78, 96,
-                         unitSkillName(unit->owner, unit->type), white);
-        japaneseTextDraw(uiPixels, 78, 108, "たんたいこうげき", red);
-        snprintf(line, sizeof(line), "%s",
+                         unitSkillName(unit->owner, unit->type, unit->awakened), white);
+        japaneseTextDraw(uiPixels, 78, 108,
+                         unit->awakened ? unitAwakeningEffectName(unit->type) :
+                         "1たい こうげき", red);
+        snprintf(line, sizeof(line), "%s%s",
+                 unit->awakened ? "かくせい " : "",
                  unit->owner != game->currentPlayer ? "てき" :
                  (unit->acted ? "こうどうずみ" : "みこうどう"));
         japaneseTextDraw(uiPixels, 78, 120, line,
@@ -739,7 +779,7 @@ static void drawCenteredText(u16 *pixels, int y, const char *text, u16 color)
 }
 
 /* 起動直後に、対戦形式と基本操作を短く確認できる画面を描く。 */
-void renderTitle(void)
+void renderTitle(int page)
 {
     int i;
     u16 top = makeColor(2, 5, 12);
@@ -759,13 +799,25 @@ void renderTitle(void)
     drawCenteredText(boardPixels, 82, "ふたりたいせん", cyan);
     drawCenteredText(boardPixels, 112, "STARTでゲームかいし", yellow);
 
-    drawCenteredText(uiPixels, 34, "あそびかた", cyan);
-    drawCenteredText(uiPixels, 59, "あいての3たいをたおす", white);
-    drawCenteredText(uiPixels, 82, "じゅうじ:カーソル", white);
-    drawCenteredText(uiPixels, 101, "A:けってい  B:もどる", white);
-    drawCenteredText(uiPixels, 120, "キャラせんたく  >  いどう  >", white);
-    drawCenteredText(uiPixels, 137, "こうげき  または  たいき  >", white);
-    drawCenteredText(uiPixels, 154, "キャラせんたく (3たいぶん)", white);
+    if (page == 0) {
+        drawCenteredText(uiPixels, 30, "あそびかた", cyan);
+        drawCenteredText(uiPixels, 50, "あいての3たいをたおす", white);
+        drawCenteredText(uiPixels, 69, "じゅうじ:カーソル", white);
+        drawCenteredText(uiPixels, 86, "A:けってい  B:もどる", white);
+        drawCenteredText(uiPixels, 104, "キャラせんたく  >  いどう  >", white);
+        drawCenteredText(uiPixels, 121, "こうげき  または  たいき  >", white);
+        drawCenteredText(uiPixels, 138, "キャラせんたく (3たいぶん)", white);
+        drawCenteredText(uiPixels, 158, "A/みぎ:つぎ      1/2", cyan);
+    } else {
+        drawCenteredText(uiPixels, 29, "かくせい", cyan);
+        drawCenteredText(uiPixels, 47, "なかまが1たい たおれると", white);
+        drawCenteredText(uiPixels, 63, "のこったキャラから 1たいをえらぶ", white);
+        drawCenteredText(uiPixels, 79, "1たいだけなら じどうでかくせい", white);
+        drawCenteredText(uiPixels, 101, "A:たて2マスの はんいこうげき", white);
+        drawCenteredText(uiPixels, 117, "B:よこ3マスの はんいこうげき", white);
+        drawCenteredText(uiPixels, 133, "C:こうげきして HP20かいふく", white);
+        drawCenteredText(uiPixels, 158, "B/ひだり:もどる  2/2", cyan);
+    }
     drawCenteredText(uiPixels, 177, "START:ゲームかいし", yellow);
 
     /* 対戦開始時に盤面と状態画面を必ず描き直す。 */

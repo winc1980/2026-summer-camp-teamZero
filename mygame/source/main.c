@@ -41,6 +41,7 @@ int main(int argc, char **argv) {
   /*1フレーム前の状態を確保*/
   Game preGame;
   bool gameStarted = false;
+  int titlePage = 0;
 
   /* (void)へキャストして、意図的な未使用引数だとコンパイラへ伝える。 */
   (void)argc;
@@ -56,7 +57,7 @@ int main(int argc, char **argv) {
   /* 最初の比較で未初期化メモリを読まないよう、初期状態を保存する。 */
   preGame = game;
   /* 入力を待つ前にタイトルと遊び方を表示する。 */
-  renderTitle();
+  renderTitle(titlePage);
 
   /* 1は常に真なので、DSアプリ終了まで繰り返す無限ループ。 */
   while (1) {
@@ -72,6 +73,12 @@ int main(int argc, char **argv) {
       if (input.restart) {
         gameStarted = true;
         renderGame(&game);
+      } else if (titlePage == 0 && (input.confirm || input.right)) {
+        titlePage = 1;
+        renderTitle(titlePage);
+      } else if (titlePage == 1 && (input.cancel || input.left)) {
+        titlePage = 0;
+        renderTitle(titlePage);
       }
       continue;
     }
