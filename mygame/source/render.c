@@ -203,7 +203,7 @@ static void makeActedGraphics(u16 *graphics)
     }
 }
 
-/* 地形enumを仮表示色へ変換する。最終画像へ差し替えるまでの表示。 */
+/* 地形enumを、コード描画する各地形の下地色へ変換する。 */
 static u16 terrainColor(TerrainType terrain)
 {
     switch (terrain) {
@@ -212,6 +212,54 @@ static u16 terrainColor(TerrainType terrain)
         case TERRAIN_BUILDING: return makeColor(19, 19, 19);
         case TERRAIN_PLAIN:
         default: return makeColor(7, 22, 8);
+    }
+}
+
+/* 盤面背景の1マス内へ、256pxの行幅を保って長方形を描く。 */
+static void fillTerrainRect(int left, int top, int x, int y,
+                            int width, int height, u16 color)
+{
+    int row;
+    int column;
+    for (row = y; row < y + height; row++) {
+        for (column = x; column < x + width; column++) {
+            if (column > 0 && column < TILE_SIZE - 1 &&
+                row > 0 && row < TILE_SIZE - 1) {
+                boardPixels[(top + row) * 256 + left + column] = color;
+            }
+        }
+    }
+}
+
+/* 外部画像を使わず、地形の意味を32px内の単純な図形で描き分ける。 */
+static void drawTerrainDecoration(TerrainType terrain, int left, int top)
+{
+    int i;
+    u16 light;
+
+    if (terrain == TERRAIN_MOUNTAIN) {
+        light = makeColor(27, 25, 22);
+        for (i = 0; i < 11; i++) {
+            int width = i * 2 + 3;
+            fillTerrainRect(left, top, 15 - i, 7 + i * 2, width, 2, light);
+        }
+        fillTerrainRect(left, top, 14, 9, 4, 3, makeColor(31, 31, 31));
+    } else if (terrain == TERRAIN_RIVER) {
+        light = makeColor(8, 25, 31);
+        for (i = 0; i < 4; i++) {
+            int y = 6 + i * 7;
+            fillTerrainRect(left, top, 3, y, 10, 2, light);
+            fillTerrainRect(left, top, 12, y + 2, 9, 2, light);
+            fillTerrainRect(left, top, 20, y, 9, 2, light);
+        }
+    } else if (terrain == TERRAIN_BUILDING) {
+        u16 wall = makeColor(25, 22, 14);
+        u16 roof = makeColor(31, 20, 3);
+        fillTerrainRect(left, top, 7, 12, 18, 15, wall);
+        for (i = 0; i < 8; i++) {
+            fillTerrainRect(left, top, 7 + i, 11 - i, 18 - i * 2, 2, roof);
+        }
+        fillTerrainRect(left, top, 14, 19, 5, 8, makeColor(8, 5, 2));
     }
 }
 
@@ -260,6 +308,7 @@ static void drawBoard(const Game *game)
                         boardPixels[pixelY * 256 + pixelX] = color;
                     }
                 }
+                drawTerrainDecoration(terrain, left, top);
             }
         }
     }
@@ -807,8 +856,8 @@ void renderTitle(int page)
         drawCenteredText(uiPixels, 104, "キャラせんたく  >  いどう  >", white);
         drawCenteredText(uiPixels, 121, "こうげき  または  たいき  >", white);
         drawCenteredText(uiPixels, 138, "キャラせんたく (3たいぶん)", white);
-        drawCenteredText(uiPixels, 158, "A/みぎ:つぎ      1/2", cyan);
-    } else {
+        drawCenteredText(uiPixels, 158, "A/みぎ:つぎ      1/3", cyan);
+    } else if (page == 1) {
         drawCenteredText(uiPixels, 29, "かくせい", cyan);
         drawCenteredText(uiPixels, 47, "なかまが1たい たおれると", white);
         drawCenteredText(uiPixels, 63, "のこったキャラから 1たいをえらぶ", white);
@@ -816,7 +865,16 @@ void renderTitle(int page)
         drawCenteredText(uiPixels, 101, "A:たて2マスの はんいこうげき", white);
         drawCenteredText(uiPixels, 117, "B:よこ3マスの はんいこうげき", white);
         drawCenteredText(uiPixels, 133, "C:こうげきして HP20かいふく", white);
-        drawCenteredText(uiPixels, 158, "B/ひだり:もどる  2/2", cyan);
+        drawCenteredText(uiPixels, 153, "B/ひだり:もどる", cyan);
+        drawCenteredText(uiPixels, 164, "A/みぎ:つぎ      2/3", cyan);
+    } else {
+        drawCenteredText(uiPixels, 32, "ちけい", cyan);
+        drawCenteredText(uiPixels, 55, "やま:はいれない", white);
+        drawCenteredText(uiPixels, 74, "かわ:はいれない", white);
+        drawCenteredText(uiPixels, 93, "たてもの:はいれる", white);
+        drawCenteredText(uiPixels, 116, "ターンのはじめに", white);
+        drawCenteredText(uiPixels, 132, "たてもののうえで HP20かいふく", white);
+        drawCenteredText(uiPixels, 158, "B/ひだり:もどる  3/3", cyan);
     }
     drawCenteredText(uiPixels, 177, "START:ゲームかいし", yellow);
 

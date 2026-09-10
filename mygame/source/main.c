@@ -73,11 +73,11 @@ int main(int argc, char **argv) {
       if (input.restart) {
         gameStarted = true;
         renderGame(&game);
-      } else if (titlePage == 0 && (input.confirm || input.right)) {
-        titlePage = 1;
+      } else if (titlePage < 2 && (input.confirm || input.right)) {
+        titlePage++;
         renderTitle(titlePage);
-      } else if (titlePage == 1 && (input.cancel || input.left)) {
-        titlePage = 0;
+      } else if (titlePage > 0 && (input.cancel || input.left)) {
+        titlePage--;
         renderTitle(titlePage);
       }
       continue;
