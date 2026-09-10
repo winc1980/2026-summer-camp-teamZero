@@ -395,13 +395,17 @@ static void drawAttackIcon(int x, int y, u16 color)
 {
     int i;
 
+    /* 刃と柄を同じ右上がりの直線にし、交差する鍔を斜めに描く。 */
     for (i = 0; i < 13; i++) {
-        fillUiRect(x + 4 + i, y + 16 - i, 2, 2, color);
+        fillUiRect(x + 6 + i, y + 17 - i, 2, 2, color);
     }
-    fillUiRect(x + 2, y + 17, 9, 2, color);
-    fillUiRect(x + 4, y + 19, 2, 5, color);
-    fillUiRect(x + 16, y + 2, 4, 2, color);
-    fillUiRect(x + 18, y + 2, 2, 4, color);
+    for (i = 0; i < 7; i++) {
+        fillUiRect(x + 5 - i, y + 18 + i, 2, 2, color);
+    }
+    for (i = 0; i < 9; i++) {
+        fillUiRect(x + 2 + i, y + 14 + i, 2, 2, color);
+    }
+    fillUiRect(x + 18, y + 3, 3, 3, color);
 }
 
 /* 待機ボタンへ砂時計を単純な図形で描く。 */
@@ -591,12 +595,22 @@ static void renderStatusScreen(const Game *game)
     drawTeamSummary(game, PLAYER_ONE, 158, 80, blue);
     drawTeamSummary(game, PLAYER_TWO, 158, 96, red);
 
-    /* 次のHPゲージIssueで拡張する領域。現時点では数値だけを引き継ぐ。 */
+    /* 選択中またはカーソル位置のキャラを、数値と大きなHPゲージで表示する。 */
     fillUiRect(5, 141, 246, 30, panel);
     drawUiFrame(5, 141, 246, 30, makeColor(12, 14, 19));
     if (unitIndex >= 0) {
-        snprintf(line, sizeof(line), "HP %d", game->units[unitIndex].hp);
-        japaneseTextDraw(uiPixels, 12, 152, line, white);
+        int hp = game->units[unitIndex].hp;
+        int barWidth = hp > 0 ? hp * 166 / INITIAL_HP : 0;
+        u16 hpColor = makeColor(5, 27, 7);
+
+        if (barWidth > 166) barWidth = 166;
+        if (hp * 5 <= INITIAL_HP) hpColor = makeColor(31, 5, 5);
+        else if (hp * 2 <= INITIAL_HP) hpColor = makeColor(31, 27, 4);
+
+        snprintf(line, sizeof(line), "HP %d/%d", hp, INITIAL_HP);
+        japaneseTextDraw(uiPixels, 12, 151, line, white);
+        fillUiRect(78, 151, 168, 10, makeColor(1, 1, 2));
+        fillUiRect(79, 152, barWidth, 8, hpColor);
     } else {
         japaneseTextDraw(uiPixels, 12, 152, "HP ---", makeColor(10, 10, 10));
     }
