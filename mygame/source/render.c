@@ -714,6 +714,30 @@ void renderInit(void)
     makeActedGraphics(actedGraphics);
 }
 
+/* 半角4px・日本語8pxという描画規則から、1行の表示幅を求める。 */
+static int uiTextWidth(const char *text)
+{
+    int width = 0;
+    const unsigned char *bytes = (const unsigned char *)text;
+
+    while (*bytes != '\0') {
+        if (*bytes < 0x80) {
+            width += 4;
+            bytes++;
+        } else {
+            width += 8;
+            bytes += (*bytes & 0xF0) == 0xE0 ? 3 : 2;
+        }
+    }
+    return width;
+}
+
+/* 指定した画面の中央へ1行を描く。 */
+static void drawCenteredText(u16 *pixels, int y, const char *text, u16 color)
+{
+    japaneseTextDraw(pixels, (256 - uiTextWidth(text)) / 2, y, text, color);
+}
+
 /* 起動直後に、対戦形式と基本操作を短く確認できる画面を描く。 */
 void renderTitle(void)
 {
@@ -731,16 +755,17 @@ void renderTitle(void)
     fillUiRect(18, 23, 220, 137, panel);
     drawUiFrame(18, 23, 220, 137, makeColor(8, 18, 31));
 
-    japaneseTextDraw(boardPixels, 76, 55, "TACTICS MVP", white);
-    japaneseTextDraw(boardPixels, 68, 82, "2にんたいせん", cyan);
-    japaneseTextDraw(boardPixels, 56, 112, "STARTでゲームかいし", yellow);
+    drawCenteredText(boardPixels, 55, "チーム0のやぼう(かり)", white);
+    drawCenteredText(boardPixels, 82, "2にんたいせん", cyan);
+    drawCenteredText(boardPixels, 112, "STARTでゲームかいし", yellow);
 
-    japaneseTextDraw(uiPixels, 92, 34, "あそびかた", cyan);
-    japaneseTextDraw(uiPixels, 42, 59, "あいての3たいをたおす", white);
-    japaneseTextDraw(uiPixels, 42, 82, "じゅうじ:カーソル", white);
-    japaneseTextDraw(uiPixels, 42, 101, "A:けってい  B:もどる", white);
-    japaneseTextDraw(uiPixels, 42, 124, "いどう > こうげき / たいき", white);
-    japaneseTextDraw(uiPixels, 54, 171, "START:ゲームかいし", yellow);
+    drawCenteredText(uiPixels, 34, "あそびかた", cyan);
+    drawCenteredText(uiPixels, 59, "あいての3たいをたおす", white);
+    drawCenteredText(uiPixels, 82, "じゅうじ:カーソル", white);
+    drawCenteredText(uiPixels, 101, "A:けってい  B:もどる", white);
+    drawCenteredText(uiPixels, 124, "キャラせんたく  >  いどう  >", white);
+    drawCenteredText(uiPixels, 143, "こうげき  または  たいき", white);
+    drawCenteredText(uiPixels, 171, "START:ゲームかいし", yellow);
 
     /* 対戦開始時に盤面と状態画面を必ず描き直す。 */
     hasLastBoardTerrain = false;
