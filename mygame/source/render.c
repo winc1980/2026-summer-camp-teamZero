@@ -83,6 +83,12 @@ static u16 makeColor(int r, int g, int b)
     return ARGB16(1, r, g, b);
 }
 
+/* 陣営を示す色を、移動の水色や攻撃の赤と混同しない青・紫へ統一する。 */
+static u16 playerColor(Player owner)
+{
+    return owner == PLAYER_ONE ? makeColor(8, 18, 31) : makeColor(23, 9, 31);
+}
+
 /* 32×32スプライト画像を透明色0で埋める。 */
 static void clearSprite(u16 *graphics)
 {
@@ -150,8 +156,8 @@ static void drawLetter(u16 *graphics, UnitType type, u16 color)
 /* プレイヤー色の本体・白枠・黄色文字を組み合わせて駒画像を作る。 */
 static void makeUnitGraphics(u16 *graphics, Player owner, UnitType type)
 {
-    /* P1は青、P2は赤。三項演算子で色を選ぶ。 */
-    u16 body = owner == PLAYER_ONE ? makeColor(5, 13, 30) : makeColor(30, 7, 7);
+    /* P1は青、P2は紫。攻撃範囲の赤とは別の役割として判別できる色にする。 */
+    u16 body = owner == PLAYER_ONE ? makeColor(5, 13, 30) : makeColor(19, 5, 25);
     clearSprite(graphics);
     fillRect(graphics, 3, 3, 26, 26, makeColor(31, 31, 31));
     fillRect(graphics, 5, 5, 22, 22, body);
@@ -505,8 +511,7 @@ static void drawAttackRangeMap(const Game *game, int unitIndex, int left, int to
     u16 empty = makeColor(3, 4, 7);
     u16 outside = makeColor(1, 1, 2);
     u16 range = makeColor(24, 5, 4);
-    u16 unitColor = unit->owner == PLAYER_ONE ? makeColor(7, 17, 31) :
-                                                makeColor(31, 7, 7);
+    u16 unitColor = playerColor(unit->owner);
 
     for (mapY = -2; mapY <= 2; mapY++) {
         for (mapX = -2; mapX <= 2; mapX++) {
@@ -544,7 +549,8 @@ static void renderStatusScreen(const Game *game)
     char line[96];
     u16 white = makeColor(31, 31, 31);
     u16 yellow = makeColor(31, 28, 2);
-    u16 blue = makeColor(8, 18, 31);
+    u16 blue = playerColor(PLAYER_ONE);
+    u16 purple = playerColor(PLAYER_TWO);
     u16 red = makeColor(31, 9, 9);
     u16 panel = makeColor(3, 5, 9);
     bool actionPhase = game->phase == PHASE_SELECT_ACTION;
@@ -567,7 +573,7 @@ static void renderStatusScreen(const Game *game)
 
     /* 勝敗決定後は通常の操作UIを隠し、結果と再戦方法だけを表示する。 */
     if (game->phase == PHASE_GAME_OVER) {
-        u16 winnerColor = game->winner == PLAYER_ONE ? blue : red;
+        u16 winnerColor = game->winner == PLAYER_ONE ? blue : purple;
 
         fillUiRect(20, 45, 216, 96, panel);
         drawUiFrame(20, 45, 216, 96, winnerColor);
@@ -606,7 +612,7 @@ static void renderStatusScreen(const Game *game)
         snprintf(line, sizeof(line), "P%d-%c %s", (int)unit->owner + 1,
                  unitTypeLetter(unit->type), unitCharacterName(unit->owner, unit->type));
         japaneseTextDraw(uiPixels, 66, 76, line,
-                         unit->owner == PLAYER_ONE ? blue : red);
+                         playerColor(unit->owner));
         snprintf(line, sizeof(line), "ATK %d", unit->attack);
         japaneseTextDraw(uiPixels, 66, 90, line, white);
         japaneseTextDraw(uiPixels, 66, 104,
@@ -620,7 +626,7 @@ static void renderStatusScreen(const Game *game)
         japaneseTextDraw(uiPixels, 12, 90, "キャラをえらぶ", white);
     }
     drawTeamSummary(game, PLAYER_ONE, 158, 80, blue);
-    drawTeamSummary(game, PLAYER_TWO, 158, 96, red);
+    drawTeamSummary(game, PLAYER_TWO, 158, 96, purple);
 
     /* 選択中またはカーソル位置のキャラを、数値と大きなHPゲージで表示する。 */
     fillUiRect(5, 141, 246, 30, panel);
