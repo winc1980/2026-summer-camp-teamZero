@@ -329,8 +329,9 @@ void gameInit(Game *game)
     for (i = 0; i < TEAM_SIZE; i++) {
         /* P1は下段y=5、x=2,3,4。 */
         unitInit(&game->units[i], (UnitType)i, PLAYER_ONE, i + 2, BOARD_HEIGHT - 1);
-        /* P2は配列後半3〜5、上段y=0。 */
-        unitInit(&game->units[i + TEAM_SIZE], (UnitType)i, PLAYER_TWO, i + 2, 0);
+        /* P2は上段で左右を反転し、画面左からC・B・Aの順に配置する。 */
+        unitInit(&game->units[i + TEAM_SIZE], (UnitType)i, PLAYER_TWO,
+                 TEAM_SIZE + 1 - i, 0);
     }
 
     game->currentPlayer = PLAYER_ONE;
