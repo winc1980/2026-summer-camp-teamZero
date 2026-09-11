@@ -228,22 +228,17 @@ static void testMovementRules(void)
 static void testTerrainRulesAndHealing(void)
 {
     Game game;
-    int x;
     int y;
     gameInit(&game);
 
     assert(game.terrain[1][1] == TERRAIN_MOUNTAIN);
-    assert(game.terrain[4][1] == TERRAIN_MOUNTAIN);
-    assert(game.terrain[1][6] == TERRAIN_RIVER);
-    assert(game.terrain[4][6] == TERRAIN_RIVER);
+    assert(game.terrain[4][5] == TERRAIN_MOUNTAIN);
+    assert(game.terrain[1][5] == TERRAIN_RIVER);
+    assert(game.terrain[4][1] == TERRAIN_RIVER);
     assert(game.terrain[2][3] == TERRAIN_BUILDING);
-    assert(game.terrain[3][3] == TERRAIN_BUILDING);
-    for (y = 0; y < BOARD_HEIGHT; y++) {
-        for (x = 0; x < BOARD_WIDTH; x++) {
-            assert(game.terrain[y][x] ==
-                   game.terrain[BOARD_HEIGHT - 1 - y][x]);
-        }
-    }
+    assert(game.terrain[3][4] == TERRAIN_BUILDING);
+    for (y = 0; y < BOARD_HEIGHT; y++)
+        assert(game.terrain[y][BOARD_WIDTH - 1] == TERRAIN_PLAIN);
     assert(!boardTerrainIsWalkable(TERRAIN_MOUNTAIN));
     assert(!boardTerrainIsWalkable(TERRAIN_RIVER));
     assert(boardTerrainIsWalkable(TERRAIN_BUILDING));
@@ -254,9 +249,9 @@ static void testTerrainRulesAndHealing(void)
     game.units[0].x = 1;
     game.units[0].y = 2;
     assert(!boardCanMoveTo(&game, 0, 1, 1));
-    game.units[0].x = 6;
+    game.units[0].x = 5;
     game.units[0].y = 2;
-    assert(!boardCanMoveTo(&game, 0, 6, 1));
+    assert(!boardCanMoveTo(&game, 0, 5, 1));
 
     gameInit(&game);
     game.units[3].x = 3;

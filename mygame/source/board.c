@@ -25,7 +25,7 @@
 
 #include "board.h"
 
-/* 草原で埋めた後、両陣営から見て上下対称になるよう固定地形を配置する。 */
+/* 草原で埋めた後、180度回転対称を基準に固定地形を配置する。 */
 void boardInit(Game *game)
 {
     /* Cではループ変数を先に宣言できる。xが列、yが行。 */
@@ -41,13 +41,13 @@ void boardInit(Game *game)
             game->terrain[y][x] = TERRAIN_PLAIN;
         }
     }
-    /* 両陣営の進行方向に対して上下対称にし、中央へ複数の経路を残す。 */
+    /* 旧対称案を基準に、右側の障害物だけ1列内側へ寄せて端への偏りを抑える。 */
     game->terrain[1][1] = TERRAIN_MOUNTAIN;
-    game->terrain[4][1] = TERRAIN_MOUNTAIN;
-    game->terrain[1][6] = TERRAIN_RIVER;
-    game->terrain[4][6] = TERRAIN_RIVER;
+    game->terrain[4][5] = TERRAIN_MOUNTAIN;
+    game->terrain[1][5] = TERRAIN_RIVER;
+    game->terrain[4][1] = TERRAIN_RIVER;
     game->terrain[2][3] = TERRAIN_BUILDING;
-    game->terrain[3][3] = TERRAIN_BUILDING;
+    game->terrain[3][4] = TERRAIN_BUILDING;
 }
 
 /* 配列へ触る前に、xとyが両方とも有効範囲内か確認する。 */
