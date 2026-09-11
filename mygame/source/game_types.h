@@ -74,6 +74,8 @@ typedef enum {
  */
 typedef enum {
     PHASE_SELECT_UNIT = 0,
+    PHASE_AWAKENING_NOTICE,
+    PHASE_SELECT_AWAKENING,
     PHASE_SELECT_MOVE,
     PHASE_SELECT_ACTION,
     PHASE_SELECT_TARGET,
@@ -101,6 +103,7 @@ typedef struct {
     int attack;    /* 1回の攻撃で相手HPから引く値。 */
     bool alive;    /* 生存中ならtrue、倒されたらfalse */
     bool acted;    /* 現在の自分ターンですでに行動したか。 */
+    bool awakened; /* 味方を失った後に選ばれ、能力が変化したか。 */
 } Unit;
 
 /*
@@ -122,6 +125,7 @@ typedef struct {
     int selectedUnit;           /* 選択中ユニットの配列番号。未選択は-1。 */
     int originX;                /* 仮移動をBで戻すために覚えておく元の列。 */
     int originY;                /* 仮移動をBで戻すために覚えておく元の行。 */
+    bool awakeningChosen[2];    /* 各プレイヤーが覚醒選択を終えたか。 */
     /* C文字列は末尾の'\0'を含むchar配列。UTF-8日本語を保持する。 */
     char message[96];
 } Game;

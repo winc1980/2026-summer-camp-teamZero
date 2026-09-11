@@ -15,12 +15,16 @@
 void unitInit(Unit *unit, UnitType type, Player owner, int x, int y);
 /* A・B・Cごとの攻撃力を返す。 */
 int unitAttackForType(UnitType type);
+/* 覚醒後のA・B・Cごとの攻撃力を返す。 */
+int unitAwakenedAttackForType(UnitType type);
 /* 画面表示用にUNIT_A/UNIT_B/UNIT_Cを'A'/'B'/'C'へ変換する。 */
 char unitTypeLetter(UnitType type);
 /* 文字列として種類名を返す。現在はデバッグ・拡張用。 */
 const char *unitTypeName(UnitType type);
 /* 陣営とA・B・Cの組み合わせに対応する技名を返す。 */
-const char *unitSkillName(Player owner, UnitType type);
+const char *unitSkillName(Player owner, UnitType type, bool awakened);
+/* 覚醒後の攻撃効果を下画面へ表示する短い文字列として返す。 */
+const char *unitAwakeningEffectName(UnitType type);
 /* 陣営とA・B・Cの組み合わせに対応する短いキャラクター名を返す。 */
 const char *unitCharacterName(Player owner, UnitType type);
 

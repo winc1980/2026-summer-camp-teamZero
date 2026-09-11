@@ -48,11 +48,13 @@
  */
 enum {
     OAM_CURSOR = 0,
+    OAM_AREA_BORDER_BASE = 1,
     OAM_UNIT_BASE = 8,
     OAM_ACTED_BASE = 16,
     OAM_MOVE_BASE = 32,
     OAM_ATTACK_BASE = 40,
-    OAM_HIGHLIGHT_MAX = 8
+    OAM_HIGHLIGHT_MAX = 8,
+    OAM_AREA_BORDER_MAX = 3
 };
 
 /*
@@ -66,6 +68,8 @@ static u16 *uiPixels;
 /* [プレイヤー][A/B/C]ごとに32×32画像のVRAMアドレスを保持。 */
 static u16 *unitGraphics[2][TEAM_SIZE];
 static u16 *cursorGraphics;
+/* 外周として必要な上下左右の組み合わせ16通り。添字の各bitが辺を表す。 */
+static u16 *areaBorderGraphics[16];
 static u16 *moveGraphics;
 static u16 *attackGraphics;
 static u16 *actedGraphics;
@@ -75,6 +79,7 @@ static bool hasLastConsoleGame;
 /* 盤面の黒緑点滅を防ぐため、前回描いた地形だけを別に保存する。 */
 static TerrainType lastBoardTerrain[BOARD_HEIGHT][BOARD_WIDTH];
 static bool hasLastBoardTerrain;
+static bool showingAwakeningNotice;
 
 /* 0〜31のRGB成分を、DSの15bit色+不透明ビットを持つu16へ変換する。 */
 static u16 makeColor(int r, int g, int b)
@@ -187,6 +192,16 @@ static void makeBorderGraphics(u16 *graphics, u16 color, bool checker)
     fillRect(graphics, TILE_SIZE - 2, 0, 2, TILE_SIZE, color);
 }
 
+/* 複数マスを一続きに囲うため、指定された外周辺だけを持つ黄色枠を作る。 */
+static void makeAreaBorderGraphics(u16 *graphics, int edges, u16 color)
+{
+    clearSprite(graphics);
+    if (edges & 1) fillRect(graphics, 0, 0, TILE_SIZE, 2, color);
+    if (edges & 2) fillRect(graphics, TILE_SIZE - 2, 0, 2, TILE_SIZE, color);
+    if (edges & 4) fillRect(graphics, 0, TILE_SIZE - 2, TILE_SIZE, 2, color);
+    if (edges & 8) fillRect(graphics, 0, 0, 2, TILE_SIZE, color);
+}
+
 /* 行動済みユニットの右上へ重ねる、小さな灰色の印を作る。 */
 static void makeActedGraphics(u16 *graphics)
 {
@@ -273,6 +288,51 @@ static void setBitmapSprite(int id, int x, int y, int priority, int alpha, u16 *
 {
     oamSet(&oamMain, id, x, y, priority, alpha, SpriteSize_32x32,
            SpriteColorFormat_Bmp, graphics, -1, false, false, false, false, false);
+}
+
+/* 選択中キャラが、覚醒後に複数マスをまとめて攻撃するA/Bか確認する。 */
+static bool selectedUnitHasAreaAttack(const Game *game)
+{
+    const Unit *unit;
+    if (game->selectedUnit < 0 || game->selectedUnit >= UNIT_COUNT) return false;
+    unit = &game->units[game->selectedUnit];
+    return unit->alive && unit->awakened &&
+           (unit->type == UNIT_A || unit->type == UNIT_B);
+}
+
+/*
+ * 覚醒A/Bの有効な攻撃マスを、内側の線がない一続きの黄色枠で囲う。
+ * 戻り値は1マス以上を描けたか。盤面端などで全範囲が外ならfalse。
+ */
+static bool renderAreaAttackBorder(const Game *game, int fromX, int fromY)
+{
+    bool cells[BOARD_HEIGHT][BOARD_WIDTH] = {{false}};
+    int x;
+    int y;
+    int count = 0;
+
+    if (!selectedUnitHasAreaAttack(game)) return false;
+    for (y = 0; y < BOARD_HEIGHT; y++) {
+        for (x = 0; x < BOARD_WIDTH; x++) {
+            cells[y][x] = boardCanAttackFrom(game, game->selectedUnit,
+                                             fromX, fromY, x, y);
+        }
+    }
+    for (y = 0; y < BOARD_HEIGHT && count < OAM_AREA_BORDER_MAX; y++) {
+        for (x = 0; x < BOARD_WIDTH && count < OAM_AREA_BORDER_MAX; x++) {
+            int edges = 0;
+            if (!cells[y][x]) continue;
+            if (y == 0 || !cells[y - 1][x]) edges |= 1;
+            if (x == BOARD_WIDTH - 1 || !cells[y][x + 1]) edges |= 2;
+            if (y == BOARD_HEIGHT - 1 || !cells[y + 1][x]) edges |= 4;
+            if (x == 0 || !cells[y][x - 1]) edges |= 8;
+            setBitmapSprite(OAM_AREA_BORDER_BASE + count,
+                            x * TILE_SIZE, y * TILE_SIZE,
+                            0, 15, areaBorderGraphics[edges]);
+            count++;
+        }
+    }
+    return count > 0;
 }
 
 /* 移動候補へカーソルを合わせたとき、その地点から届く全攻撃マスを表示する。 */
@@ -379,6 +439,8 @@ static const char *phaseName(GamePhase phase)
 {
     switch (phase) {
         case PHASE_SELECT_UNIT: return "キャラせんたく";
+        case PHASE_AWAKENING_NOTICE: return "かくせい";
+        case PHASE_SELECT_AWAKENING: return "かくせいキャラせんたく";
         case PHASE_SELECT_MOVE: return "いどうさきせんたく";
         case PHASE_SELECT_ACTION: return "こうどうせんたく";
         case PHASE_SELECT_TARGET: return "てきせんたく";
@@ -538,10 +600,48 @@ static void drawTeamSummary(const Game *game, Player owner, int x, int y, u16 co
 {
     int base = owner == PLAYER_ONE ? 0 : TEAM_SIZE;
     char line[40];
+    const char *labelA = owner == PLAYER_ONE ? "ゆ" : "フ";
+    const char *labelB = owner == PLAYER_ONE ? "ま" : "ゴ";
+    const char *labelC = owner == PLAYER_ONE ? "エ" : "ヴ";
 
-    snprintf(line, sizeof(line), "P%d A%3d B%3d C%3d", (int)owner + 1,
-             game->units[base].hp, game->units[base + 1].hp, game->units[base + 2].hp);
+    snprintf(line, sizeof(line), "P%d %s%3d %s%3d %s%3d", (int)owner + 1,
+             labelA, game->units[base].hp,
+             labelB, game->units[base + 1].hp,
+             labelC, game->units[base + 2].hp);
     japaneseTextDraw(uiPixels, x, y, line, color);
+}
+
+/* 劣勢側が生存者から覚醒させる1体を選ぶ間だけ表示する専用画面。 */
+static void renderAwakeningScreen(const Game *game, u16 white, u16 yellow, u16 panel)
+{
+    int unitIndex = boardUnitAt(game, game->cursorX, game->cursorY);
+    char line[96];
+    u16 accent = playerColor(game->currentPlayer);
+
+    snprintf(line, sizeof(line), "P%d  かくせいキャラせんたく",
+             (int)game->currentPlayer + 1);
+    japaneseTextDraw(uiPixels, 4, 5, line, yellow);
+    japaneseTextDraw(uiPixels, 4, 18, "のこった2たいから 1たいをえらぶ", white);
+    fillUiRect(12, 40, 232, 112, panel);
+    drawUiFrame(12, 40, 232, 112, accent);
+
+    if (unitIndex >= 0) {
+        const Unit *unit = &game->units[unitIndex];
+        snprintf(line, sizeof(line), "P%d-%c %s", (int)unit->owner + 1,
+                 unitTypeLetter(unit->type), unitCharacterName(unit->owner, unit->type));
+        japaneseTextDraw(uiPixels, 28, 55, line, accent);
+        japaneseTextDraw(uiPixels, 28, 75, "かくせいご", yellow);
+        japaneseTextDraw(uiPixels, 28, 89,
+                         unitSkillName(unit->owner, unit->type, true), white);
+        snprintf(line, sizeof(line), "こうげきりょく %d",
+                 unitAwakenedAttackForType(unit->type));
+        japaneseTextDraw(uiPixels, 28, 105, line, white);
+        snprintf(line, sizeof(line), "HP %d/%d", unit->hp, INITIAL_HP);
+        japaneseTextDraw(uiPixels, 150, 105, line, white);
+        snprintf(line, sizeof(line), "こうか %s", unitAwakeningEffectName(unit->type));
+        japaneseTextDraw(uiPixels, 28, 121, line, white);
+    }
+    japaneseTextDraw(uiPixels, 18, 165, "じゅうじ:えらぶ  A:かくせい", white);
 }
 
 /* Gameの状態を日本語の情報画面として下画面へ描く。 */
@@ -585,6 +685,20 @@ static void renderStatusScreen(const Game *game)
         return;
     }
 
+    if (game->phase == PHASE_AWAKENING_NOTICE) {
+        fillUiRect(18, 47, 220, 92, panel);
+        drawUiFrame(18, 47, 220, 92, playerColor(game->currentPlayer));
+        japaneseTextDraw(uiPixels, 48, 68, "なかまがたおれた", white);
+        japaneseTextDraw(uiPixels, 48, 89, "のこったキャラがかくせい", yellow);
+        japaneseTextDraw(uiPixels, 80, 119, "A:つづける", white);
+        return;
+    }
+
+    if (game->phase == PHASE_SELECT_AWAKENING) {
+        renderAwakeningScreen(game, white, yellow, panel);
+        return;
+    }
+
     /* 上端は現在の手番、操作段階、ゲームからの案内文。 */
     if (game->phase == PHASE_SELECT_UNIT) {
         snprintf(line, sizeof(line), "P%d  %s (どのキャラからでもOK)",
@@ -625,9 +739,12 @@ static void renderStatusScreen(const Game *game)
         snprintf(line, sizeof(line), "こうげきりょく %d", unit->attack);
         japaneseTextDraw(uiPixels, 78, 84, line, white);
         japaneseTextDraw(uiPixels, 78, 96,
-                         unitSkillName(unit->owner, unit->type), white);
-        japaneseTextDraw(uiPixels, 78, 108, "たんたいこうげき", red);
-        snprintf(line, sizeof(line), "%s",
+                         unitSkillName(unit->owner, unit->type, unit->awakened), white);
+        japaneseTextDraw(uiPixels, 78, 108,
+                         unit->awakened ? unitAwakeningEffectName(unit->type) :
+                         "1たい こうげき", red);
+        snprintf(line, sizeof(line), "%s%s",
+                 unit->awakened ? "かくせい " : "",
                  unit->owner != game->currentPlayer ? "てき" :
                  (unit->acted ? "こうどうずみ" : "みこうどう"));
         japaneseTextDraw(uiPixels, 78, 120, line,
@@ -666,6 +783,7 @@ void renderInit(void)
 {
     int owner;
     int type;
+    int edges;
 
     /* メインエンジン（盤面）を上画面、サブエンジン（UI）を下画面へ割り当ててる。 */
     lcdMainOnTop();
@@ -705,6 +823,12 @@ void renderInit(void)
     }
     /* カーソル、移動・攻撃範囲、行動済み印も同じ32×32で確保する。 */
     cursorGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
+    for (edges = 0; edges < 16; edges++) {
+        areaBorderGraphics[edges] = oamAllocateGfx(&oamMain, SpriteSize_32x32,
+                                                   SpriteColorFormat_Bmp);
+        makeAreaBorderGraphics(areaBorderGraphics[edges], edges,
+                               makeColor(31, 31, 0));
+    }
     moveGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
     attackGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
     actedGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
@@ -738,8 +862,24 @@ static void drawCenteredText(u16 *pixels, int y, const char *text, u16 color)
     japaneseTextDraw(pixels, (256 - uiTextWidth(text)) / 2, y, text, color);
 }
 
+/* 覚醒が発生したことを、キャラクター選択前に上画面全体で知らせる。 */
+static void renderAwakeningNotice(const Game *game)
+{
+    int i;
+    char line[32];
+    u16 background = makeColor(2, 2, 7);
+    u16 white = makeColor(31, 31, 31);
+    u16 yellow = makeColor(31, 28, 2);
+
+    for (i = 0; i < 256 * 192; i++) boardPixels[i] = background;
+    snprintf(line, sizeof(line), "プレイヤー%d", (int)game->currentPlayer + 1);
+    drawCenteredText(boardPixels, 63, line, white);
+    drawCenteredText(boardPixels, 91, "かくせい!", yellow);
+    drawCenteredText(boardPixels, 121, "A:つづける", white);
+}
+
 /* 起動直後に、対戦形式と基本操作を短く確認できる画面を描く。 */
-void renderTitle(void)
+void renderTitle(int page)
 {
     int i;
     u16 top = makeColor(2, 5, 12);
@@ -759,13 +899,24 @@ void renderTitle(void)
     drawCenteredText(boardPixels, 82, "ふたりたいせん", cyan);
     drawCenteredText(boardPixels, 112, "STARTでゲームかいし", yellow);
 
-    drawCenteredText(uiPixels, 34, "あそびかた", cyan);
-    drawCenteredText(uiPixels, 59, "あいての3たいをたおす", white);
-    drawCenteredText(uiPixels, 82, "じゅうじ:カーソル", white);
-    drawCenteredText(uiPixels, 101, "A:けってい  B:もどる", white);
-    drawCenteredText(uiPixels, 120, "キャラせんたく  >  いどう  >", white);
-    drawCenteredText(uiPixels, 137, "こうげき  または  たいき  >", white);
-    drawCenteredText(uiPixels, 154, "キャラせんたく (3たいぶん)", white);
+    if (page == 0) {
+        drawCenteredText(uiPixels, 30, "あそびかた", cyan);
+        drawCenteredText(uiPixels, 50, "あいての3たいをたおす", white);
+        drawCenteredText(uiPixels, 69, "じゅうじ:カーソル", white);
+        drawCenteredText(uiPixels, 86, "A:けってい  B:もどる", white);
+        drawCenteredText(uiPixels, 104, "キャラせんたく  >  いどう  >", white);
+        drawCenteredText(uiPixels, 121, "こうげき  または  たいき  >", white);
+        drawCenteredText(uiPixels, 138, "キャラせんたく (3たいぶん)", white);
+        drawCenteredText(uiPixels, 151, "A:つづき      1/2", cyan);
+    } else {
+        drawCenteredText(uiPixels, 29, "かくせい", cyan);
+        drawCenteredText(uiPixels, 47, "なかまが1たい たおれると", white);
+        drawCenteredText(uiPixels, 63, "のこったキャラから 1たいをえらぶ", white);
+        drawCenteredText(uiPixels, 79, "2たいたおされたら 1たいじどうでかくせい", white);
+        drawCenteredText(uiPixels, 103, "AとB:はんいこうげきにへんか", white);
+        drawCenteredText(uiPixels, 123, "C:こうげきして HP20かいふく", white);
+        drawCenteredText(uiPixels, 151, "B:もどる      2/2", cyan);
+    }
     drawCenteredText(uiPixels, 177, "START:ゲームかいし", yellow);
 
     /* 対戦開始時に盤面と状態画面を必ず描き直す。 */
@@ -776,6 +927,19 @@ void renderTitle(void)
 /* 1フレームのGameから、次の画面内容をOAM/VRAMへ準備。 */
 void renderGame(const Game *game)
 {
+    bool renderedAreaBorder = false;
+
+    if (game->phase == PHASE_AWAKENING_NOTICE) {
+        oamClear(&oamMain, 0, 128);
+        if (!showingAwakeningNotice) {
+            renderAwakeningNotice(game);
+            showingAwakeningNotice = true;
+            hasLastBoardTerrain = false;
+        }
+        renderStatusScreen(game);
+        return;
+    }
+    showingAwakeningNotice = false;
     /* 静的な背景は変更時のみ更新する。 */
     drawBoardIfChanged(game);
     /* 前フレームのスプライト登録を一旦消し、現状態から登録し直す。 */
@@ -783,8 +947,17 @@ void renderGame(const Game *game)
     /* 攻撃範囲と行動済み印はユニットより手前、カーソルはOAM番号で最前面。 */
     renderHighlights(game);
     renderUnits(game);
-    setBitmapSprite(OAM_CURSOR, game->cursorX * TILE_SIZE, game->cursorY * TILE_SIZE,
-                    0, 15, cursorGraphics);
+    if (selectedUnitHasAreaAttack(game)) {
+        if (game->phase == PHASE_SELECT_TARGET) {
+            const Unit *unit = &game->units[game->selectedUnit];
+            renderedAreaBorder = renderAreaAttackBorder(game, unit->x, unit->y);
+        }
+    }
+    /* 範囲攻撃の確認中以外は、移動先や単体対象を示す通常枠を使う。 */
+    if (!renderedAreaBorder) {
+        setBitmapSprite(OAM_CURSOR, game->cursorX * TILE_SIZE,
+                        game->cursorY * TILE_SIZE, 0, 15, cursorGraphics);
+    }
     renderStatusScreen(game);
 }
 

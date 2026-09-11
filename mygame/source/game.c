@@ -69,6 +69,24 @@ static bool gamePlayerHasLivingUnits(const Game *game, Player player)
     return false;
 }
 
+/* 指定プレイヤーの生存キャラクター数を返す。 */
+static int gameLivingUnitCount(const Game *game, Player player)
+{
+    int i;
+    int count = 0;
+    for (i = 0; i < UNIT_COUNT; i++) {
+        if (game->units[i].alive && game->units[i].owner == player) count++;
+    }
+    return count;
+}
+
+/* 指定キャラクターへ盤面カーソルを合わせる。 */
+static void gameFocusUnit(Game *game, int unitIndex)
+{
+    game->cursorX = game->units[unitIndex].x;
+    game->cursorY = game->units[unitIndex].y;
+}
+
 /* 生存している自軍全員が行動済みならtrue。死亡者は数えない。 */
 static bool gameAllLivingUnitsActed(const Game *game, Player player)
 {
@@ -109,6 +127,36 @@ static void gameFocusFirstAvailableUnit(Game *game)
     }
 }
 
+/* 指定キャラクターを覚醒させ、攻撃力を覚醒後の値へ更新する。 */
+static void gameAwakenUnit(Game *game, int unitIndex)
+{
+    Unit *unit = &game->units[unitIndex];
+    unit->awakened = true;
+    unit->attack = unitAwakenedAttackForType(unit->type);
+    game->awakeningChosen[unit->owner] = true;
+    gameFocusUnit(game, unitIndex);
+}
+
+/* 味方を失ったプレイヤーについて、操作前に覚醒告知を開始する。 */
+static bool gamePrepareAwakening(Game *game)
+{
+    int i;
+    int living = gameLivingUnitCount(game, game->currentPlayer);
+
+    if (game->awakeningChosen[game->currentPlayer] || living >= TEAM_SIZE) {
+        return false;
+    }
+    for (i = 0; i < UNIT_COUNT; i++) {
+        Unit *unit = &game->units[i];
+        if (!unit->alive || unit->owner != game->currentPlayer) continue;
+        gameFocusUnit(game, i);
+        game->phase = PHASE_AWAKENING_NOTICE;
+        gameSetMessage(game, "なかまをうしなった かくせい!");
+        return true;
+    }
+    return false;
+}
+
 /* 相手へ手番を渡し、そのプレイヤーの行動状態と画面状態を初期化。 */
 static void gameBeginNextTurn(Game *game)
 {
@@ -118,7 +166,9 @@ static void gameBeginNextTurn(Game *game)
     game->selectedUnit = -1;
     game->phase = PHASE_SELECT_UNIT;
     gameFocusFirstAvailableUnit(game);
-    gameSetMessage(game, "プレイヤー%dのばん", (int)game->currentPlayer + 1);
+    if (!gamePrepareAwakening(game)) {
+        gameSetMessage(game, "プレイヤー%dのばん", (int)game->currentPlayer + 1);
+    }
 }
 
 /* 1体のATTACKまたはWAITが確定した後の共通処理。 */
@@ -164,6 +214,86 @@ static void gameMoveCursor(Game *game, GameInput input)
         game->cursorX = nextX;
         game->cursorY = nextY;
     }
+}
+
+/* 覚醒候補の生存キャラクターだけを方向キーで巡回する。 */
+static void gameUpdateSelectAwakening(Game *game, GameInput input)
+{
+    int current = boardUnitAt(game, game->cursorX, game->cursorY);
+    int base = game->currentPlayer == PLAYER_ONE ? 0 : TEAM_SIZE;
+    int step = (input.left || input.up) ? -1 :
+               (input.right || input.down) ? 1 : 0;
+    int offset;
+
+    if (step != 0) {
+        int local = current >= base && current < base + TEAM_SIZE ? current - base : 0;
+        for (offset = 1; offset <= TEAM_SIZE; offset++) {
+            int candidate = base + (local + step * offset + TEAM_SIZE * 2) % TEAM_SIZE;
+            if (game->units[candidate].alive) {
+                gameFocusUnit(game, candidate);
+                break;
+            }
+        }
+    }
+    if (!input.confirm) return;
+
+    current = boardUnitAt(game, game->cursorX, game->cursorY);
+    if (current < 0 || !game->units[current].alive ||
+        game->units[current].owner != game->currentPlayer) {
+        gameSetMessage(game, "のこったキャラをえらぶ");
+        return;
+    }
+    gameAwakenUnit(game, current);
+    game->phase = PHASE_SELECT_UNIT;
+    gameSetMessage(game, "%sがかくせい",
+                   unitCharacterName(game->units[current].owner,
+                                     game->units[current].type));
+}
+
+/* 覚醒告知を確認後、生存数に応じて選択または自動覚醒へ進む。 */
+static void gameUpdateAwakeningNotice(Game *game, GameInput input)
+{
+    int i;
+    int living;
+
+    if (!input.confirm) return;
+    living = gameLivingUnitCount(game, game->currentPlayer);
+    if (living == 1) {
+        for (i = 0; i < UNIT_COUNT; i++) {
+            if (game->units[i].alive && game->units[i].owner == game->currentPlayer) {
+                gameAwakenUnit(game, i);
+                game->phase = PHASE_SELECT_UNIT;
+                gameSetMessage(game, "さいごのキャラがじどうでかくせい");
+                return;
+            }
+        }
+    }
+    game->phase = PHASE_SELECT_AWAKENING;
+    gameSetMessage(game, "かくせいするキャラをえらぶ");
+}
+
+/* 1体へダメージを与え、HPが0なら盤面から除外する。 */
+static void gameDamageUnit(Unit *defender, int damage)
+{
+    defender->hp -= damage;
+    if (defender->hp <= 0) {
+        defender->hp = 0;
+        defender->alive = false;
+    }
+}
+
+/* 覚醒A・Bの攻撃範囲にいる敵全員へ、同時にダメージを与える。 */
+static void gamePerformAreaAttack(Game *game)
+{
+    int i;
+    Unit *attacker = &game->units[game->selectedUnit];
+
+    for (i = 0; i < UNIT_COUNT; i++) {
+        if (boardCanAttack(game, game->selectedUnit, i)) {
+            gameDamageUnit(&game->units[i], attacker->attack);
+        }
+    }
+    gameFinishAction(game);
 }
 
 /* PHASE_SELECT_UNIT中のAボタン処理。 */
@@ -275,7 +405,11 @@ static void gameUpdateSelectAction(Game *game, GameInput input)
     game->cursorX = game->units[target].x;
     game->cursorY = game->units[target].y;
     game->phase = PHASE_SELECT_TARGET;
-    gameSetMessage(game, "こうげきできるてきをえらぶ B:もどる");
+    if (unit->awakened && (unit->type == UNIT_A || unit->type == UNIT_B)) {
+        gameSetMessage(game, "はんいこうげき A:はつどう B:もどる");
+    } else {
+        gameSetMessage(game, "こうげきできるてきをえらぶ B:もどる");
+    }
 }
 
 /* PHASE_SELECT_TARGET中の攻撃対象決定処理。 */
@@ -296,6 +430,13 @@ static void gameUpdateSelectTarget(Game *game, GameInput input)
     }
     if (!input.confirm) return;
 
+    attacker = &game->units[game->selectedUnit];
+    /* 覚醒A/Bは黄色の大枠全体が対象。個別の敵へカーソルを合わせる必要はない。 */
+    if (attacker->awakened && (attacker->type == UNIT_A || attacker->type == UNIT_B)) {
+        gamePerformAreaAttack(game);
+        return;
+    }
+
     /* カーソル位置の番号と攻撃可否を再検証する。 */
     target = boardUnitAt(game, game->cursorX, game->cursorY);
     if (!boardCanAttack(game, game->selectedUnit, target)) {
@@ -303,13 +444,12 @@ static void gameUpdateSelectTarget(Game *game, GameInput input)
         return;
     }
 
-    attacker = &game->units[game->selectedUnit];
     defender = &game->units[target];
-    defender->hp -= attacker->attack;
-    /* HPが負数のまま表示されないよう0へ丸め、盤面から除外。 */
-    if (defender->hp <= 0) {
-        defender->hp = 0;
-        defender->alive = false;
+    gameDamageUnit(defender, attacker->attack);
+    /* 覚醒Cは攻撃が命中したとき、自身のHPを最大100まで20回復する。 */
+    if (attacker->awakened && attacker->type == UNIT_C) {
+        attacker->hp += 20;
+        if (attacker->hp > INITIAL_HP) attacker->hp = INITIAL_HP;
     }
     gameFinishAction(game);
 }
@@ -346,6 +486,8 @@ void gameInit(Game *game)
 /* main.cから毎フレーム1回呼ばれる、ゲーム進行の公開入口。 */
 void gameUpdate(Game *game, GameInput input)
 {
+    bool fixedAreaTarget = false;
+
     /* ゲーム終了中はSTART以外を無視し、押されたら同じGameを再初期化。 */
     if (game->phase == PHASE_GAME_OVER) {
         if (input.restart) gameInit(game);
@@ -356,12 +498,23 @@ void gameUpdate(Game *game, GameInput input)
      * 行動メニュー中の方向キーはメニュー専用にする。
      * それ以外の状態だけ盤面カーソルを動かすことで、黄色枠の誤移動を防ぐ。
      */
-    if (game->phase != PHASE_SELECT_ACTION) {
+    if (game->phase == PHASE_SELECT_TARGET &&
+        game->selectedUnit >= 0 && game->selectedUnit < UNIT_COUNT) {
+        const Unit *unit = &game->units[game->selectedUnit];
+        fixedAreaTarget = unit->awakened &&
+                          (unit->type == UNIT_A || unit->type == UNIT_B);
+    }
+    if (game->phase != PHASE_SELECT_ACTION &&
+        game->phase != PHASE_AWAKENING_NOTICE &&
+        game->phase != PHASE_SELECT_AWAKENING &&
+        !fixedAreaTarget) {
         gameMoveCursor(game, input);
     }
     /* 現在のphaseだけに入力を渡す。これが状態機械の中心。 */
     switch (game->phase) {
         case PHASE_SELECT_UNIT: gameUpdateSelectUnit(game, input); break;
+        case PHASE_AWAKENING_NOTICE: gameUpdateAwakeningNotice(game, input); break;
+        case PHASE_SELECT_AWAKENING: gameUpdateSelectAwakening(game, input); break;
         case PHASE_SELECT_MOVE: gameUpdateSelectMove(game, input); break;
         case PHASE_SELECT_ACTION: gameUpdateSelectAction(game, input); break;
         case PHASE_SELECT_TARGET: gameUpdateSelectTarget(game, input); break;

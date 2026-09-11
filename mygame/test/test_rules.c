@@ -80,12 +80,24 @@ static void testCharacterNames(void)
     assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_A), "フランケン") == 0);
     assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_B), "ゴースト") == 0);
     assert(strcmp(unitCharacterName(PLAYER_TWO, UNIT_C), "ヴァンパイア") == 0);
-    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_A), "せいなるいちげき") == 0);
-    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_B), "サンダースパイク") == 0);
-    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_C), "フェアリーアロー") == 0);
-    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_A), "パワースマッシュ") == 0);
-    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_B), "ポルターガイスト") == 0);
-    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_C), "ブラッドバイト") == 0);
+    assert(unitAttackForType(UNIT_A) == 40);
+    assert(unitAttackForType(UNIT_B) == 30);
+    assert(unitAttackForType(UNIT_C) == 30);
+    assert(unitAwakenedAttackForType(UNIT_A) == 70);
+    assert(unitAwakenedAttackForType(UNIT_B) == 40);
+    assert(unitAwakenedAttackForType(UNIT_C) == 40);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_A, false), "ざんげき") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_A, true), "せいなるいちげき") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_B, false), "サンダースパイク") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_B, true), "サンダースパーク") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_C, false), "フェアリーアロー") == 0);
+    assert(strcmp(unitSkillName(PLAYER_ONE, UNIT_C, true), "フェアリーブレス") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_A, false), "パワースマッシュ") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_A, true), "ボルトクラッシュ") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_B, false), "ポルターガイスト") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_B, true), "ナイトメアストーム") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_C, false), "ブラッドバイト") == 0);
+    assert(strcmp(unitSkillName(PLAYER_TWO, UNIT_C, true), "ブラッドドレイン") == 0);
 }
 
 /* 盤面外表示にも使う、A・B・C本来の攻撃形状と陣営ごとの向きを確認する。 */
@@ -395,7 +407,7 @@ static void testAttackAndVictory(void)
     /* テストを短くするため、敵Aを隣へ置き、残り2体を倒れた状態にする。 */
     game.units[3].x = 2;
     game.units[3].y = 4;
-    game.units[3].hp = 60;
+    game.units[3].hp = 40;
     game.units[4].alive = false;
     game.units[5].alive = false;
 
@@ -501,6 +513,192 @@ static void testUnavailableAttackSelectsWaitOnly(void)
     assert(game.selectedAction == ACTION_ATTACK);
 }
 
+/* 味方を1体失った側が、次の手番で生存者から覚醒対象を選べることを確認する。 */
+static void testAwakeningSelection(void)
+{
+    Game game;
+    gameInit(&game);
+    game.units[5].alive = false;
+    game.units[5].hp = 0;
+
+    makeFocusedUnitWait(&game);
+    makeFocusedUnitWait(&game);
+    makeFocusedUnitWait(&game);
+    assert(game.currentPlayer == PLAYER_TWO);
+    assert(game.phase == PHASE_AWAKENING_NOTICE);
+    gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_AWAKENING);
+    assert(game.cursorX == game.units[3].x && game.cursorY == game.units[3].y);
+
+    gameUpdate(&game, downInput());
+    assert(game.cursorX == game.units[4].x && game.cursorY == game.units[4].y);
+    gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_UNIT);
+    assert(game.awakeningChosen[PLAYER_TWO]);
+    assert(game.units[4].awakened);
+    assert(game.units[4].attack == 40);
+    assert(!game.units[4].acted);
+    assert(!game.units[3].awakened);
+}
+
+/* 生存者が1体だけなら選択を挟まず、その1体が自動覚醒することを確認する。 */
+static void testAutomaticAwakening(void)
+{
+    Game game;
+    gameInit(&game);
+    game.units[3].alive = false;
+    game.units[3].hp = 0;
+    game.units[4].alive = false;
+    game.units[4].hp = 0;
+
+    makeFocusedUnitWait(&game);
+    makeFocusedUnitWait(&game);
+    makeFocusedUnitWait(&game);
+    assert(game.currentPlayer == PLAYER_TWO);
+    assert(game.phase == PHASE_AWAKENING_NOTICE);
+    gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_UNIT);
+    assert(game.awakeningChosen[PLAYER_TWO]);
+    assert(game.units[5].awakened);
+    assert(game.units[5].attack == 40);
+}
+
+/* 覚醒Aは正面2マスの敵を貫通してまとめて攻撃する。 */
+static void testAwakenedAAreaAttack(void)
+{
+    Game game;
+    GameInput moveHiddenCursor = noInput();
+    gameInit(&game);
+    game.units[0].x = 3;
+    game.units[0].y = 4;
+    game.units[0].awakened = true;
+    game.units[0].attack = unitAwakenedAttackForType(UNIT_A);
+    game.units[3].x = 3;
+    game.units[3].y = 3;
+    game.units[4].x = 3;
+    game.units[4].y = 2;
+    game.units[5].x = 7;
+    game.units[5].y = 0;
+    game.selectedUnit = 0;
+    game.selectedAction = ACTION_ATTACK;
+    game.phase = PHASE_SELECT_ACTION;
+
+    assert(boardCanAttack(&game, 0, 3));
+    assert(boardCanAttack(&game, 0, 4));
+    gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_TARGET);
+    moveHiddenCursor.right = true;
+    gameUpdate(&game, moveHiddenCursor);
+    assert(game.cursorX == game.units[3].x);
+    assert(game.cursorY == game.units[3].y);
+    gameUpdate(&game, confirmInput());
+    assert(game.units[3].hp == 30);
+    assert(game.units[4].hp == 30);
+    assert(game.units[0].acted);
+    assert(game.phase == PHASE_SELECT_UNIT);
+}
+
+/* 覚醒Bは2マス前の横3マスにいる敵を一度に攻撃する。 */
+static void testAwakenedBAreaAttack(void)
+{
+    Game game;
+    gameInit(&game);
+    game.units[1].x = 3;
+    game.units[1].y = 4;
+    game.units[1].awakened = true;
+    game.units[1].attack = unitAwakenedAttackForType(UNIT_B);
+    game.units[3].x = 2;
+    game.units[3].y = 2;
+    game.units[4].x = 4;
+    game.units[4].y = 2;
+    game.units[5].x = 7;
+    game.units[5].y = 0;
+    game.selectedUnit = 1;
+    game.selectedAction = ACTION_ATTACK;
+    game.phase = PHASE_SELECT_ACTION;
+
+    gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_TARGET);
+    gameUpdate(&game, confirmInput());
+    assert(game.units[3].hp == 60);
+    assert(game.units[4].hp == 60);
+    assert(game.units[1].acted);
+}
+
+/* 範囲攻撃で残る敵を同時に倒した場合も、その場で勝敗が決まる。 */
+static void testAreaAttackCanWin(void)
+{
+    Game game;
+    gameInit(&game);
+    game.units[1].x = 3;
+    game.units[1].y = 4;
+    game.units[1].awakened = true;
+    game.units[1].attack = unitAwakenedAttackForType(UNIT_B);
+    game.units[3].x = 2;
+    game.units[3].y = 2;
+    game.units[3].hp = 40;
+    game.units[4].x = 4;
+    game.units[4].y = 2;
+    game.units[4].hp = 40;
+    game.units[5].alive = false;
+    game.units[5].hp = 0;
+    game.selectedUnit = 1;
+    game.selectedAction = ACTION_ATTACK;
+    game.phase = PHASE_SELECT_ACTION;
+
+    gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_TARGET);
+    gameUpdate(&game, confirmInput());
+    assert(!game.units[3].alive && !game.units[4].alive);
+    assert(game.phase == PHASE_GAME_OVER);
+    assert(game.winner == PLAYER_ONE);
+}
+
+/* 覚醒Cは単体攻撃の命中時に、自身を20回復し最大HPを越えない。 */
+static void testAwakenedCHealing(void)
+{
+    Game game;
+    gameInit(&game);
+    game.units[2].x = 3;
+    game.units[2].y = 3;
+    game.units[2].hp = 85;
+    game.units[2].awakened = true;
+    game.units[2].attack = unitAwakenedAttackForType(UNIT_C);
+    game.units[3].x = 2;
+    game.units[3].y = 2;
+    game.selectedUnit = 2;
+    game.selectedAction = ACTION_ATTACK;
+    game.phase = PHASE_SELECT_ACTION;
+
+    gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_TARGET);
+    gameUpdate(&game, confirmInput());
+    assert(game.units[3].hp == 60);
+    assert(game.units[2].hp == INITIAL_HP);
+}
+
+/* 再戦時は、両者の覚醒履歴と全キャラクターの能力が初期値へ戻る。 */
+static void testAwakeningResetsOnReplay(void)
+{
+    Game game;
+    GameInput restart = noInput();
+    int i;
+    gameInit(&game);
+    game.units[0].awakened = true;
+    game.units[0].attack = unitAwakenedAttackForType(UNIT_A);
+    game.awakeningChosen[PLAYER_ONE] = true;
+    game.phase = PHASE_GAME_OVER;
+    restart.restart = true;
+    gameUpdate(&game, restart);
+
+    assert(!game.awakeningChosen[PLAYER_ONE]);
+    assert(!game.awakeningChosen[PLAYER_TWO]);
+    for (i = 0; i < UNIT_COUNT; i++) {
+        assert(!game.units[i].awakened);
+        assert(game.units[i].attack == unitAttackForType(game.units[i].type));
+    }
+}
+
 /* 通常プログラムと同じくテスト実行ファイルもmainから開始する。 */
 int main(void)
 {
@@ -517,6 +715,13 @@ int main(void)
     testTurnChangesAfterAllUnitsAct();
     testActionMenuDoesNotMoveBoardCursor();
     testUnavailableAttackSelectsWaitOnly();
+    testAwakeningSelection();
+    testAutomaticAwakening();
+    testAwakenedAAreaAttack();
+    testAwakenedBAreaAttack();
+    testAreaAttackCanWin();
+    testAwakenedCHealing();
+    testAwakeningResetsOnReplay();
     /* ここまで到達した場合だけ、すべて成功したと表示する。 */
     puts("All game rule tests passed.");
     return 0;

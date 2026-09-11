@@ -203,12 +203,12 @@ bool boardCanAttackFrom(const Game *game, int attackerIndex, int fromX, int from
     dy = targetY - fromY;
     if (!boardIsAttackOffset(attacker->type, attacker->owner, dx, dy)) return false;
 
-    /* Aの2マス攻撃だけは、間のキャラや通行不可地形を貫通しない。 */
+    /* Aの2マス攻撃は地形を貫通しない。覚醒後だけは間のキャラを貫く。 */
     forward = attacker->owner == PLAYER_ONE ? -1 : 1;
     if (attacker->type == UNIT_A && dy == forward * 2) {
         int middleY = fromY + forward;
         int middleUnit = boardUnitAt(game, fromX, middleY);
-        if ((middleUnit >= 0 && middleUnit != attackerIndex) ||
+        if ((!attacker->awakened && middleUnit >= 0 && middleUnit != attackerIndex) ||
             !boardTerrainIsWalkable(game->terrain[middleY][fromX])) {
             return false;
         }
