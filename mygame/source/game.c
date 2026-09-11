@@ -456,6 +456,13 @@ static void gameUpdateSelectTarget(Game *game, GameInput input)
     }
     if (!input.confirm) return;
 
+    attacker = &game->units[game->selectedUnit];
+    /* 覚醒A/Bは黄色の大枠全体が対象。個別の敵へカーソルを合わせる必要はない。 */
+    if (attacker->awakened && (attacker->type == UNIT_A || attacker->type == UNIT_B)) {
+        gamePerformAreaAttack(game);
+        return;
+    }
+
     /* カーソル位置の番号と攻撃可否を再検証する。 */
     target = boardUnitAt(game, game->cursorX, game->cursorY);
     if (!boardCanAttack(game, game->selectedUnit, target)) {
@@ -463,13 +470,7 @@ static void gameUpdateSelectTarget(Game *game, GameInput input)
         return;
     }
 
-    attacker = &game->units[game->selectedUnit];
     defender = &game->units[target];
-    /* 覚醒A・Bは対象を確認してAを押した時点で、範囲内の敵全員へ攻撃する。 */
-    if (attacker->awakened && (attacker->type == UNIT_A || attacker->type == UNIT_B)) {
-        gamePerformAreaAttack(game);
-        return;
-    }
     gameDamageUnit(defender, attacker->attack);
     /* 覚醒Cは攻撃が命中したとき、自身のHPを最大100まで20回復する。 */
     if (attacker->awakened && attacker->type == UNIT_C) {
@@ -511,6 +512,8 @@ void gameInit(Game *game)
 /* main.cから毎フレーム1回呼ばれる、ゲーム進行の公開入口。 */
 void gameUpdate(Game *game, GameInput input)
 {
+    bool fixedAreaTarget = false;
+
     /* ゲーム終了中はSTART以外を無視し、押されたら同じGameを再初期化。 */
     if (game->phase == PHASE_GAME_OVER) {
         if (input.restart) gameInit(game);
@@ -521,9 +524,16 @@ void gameUpdate(Game *game, GameInput input)
      * 行動メニュー中の方向キーはメニュー専用にする。
      * それ以外の状態だけ盤面カーソルを動かすことで、黄色枠の誤移動を防ぐ。
      */
+    if (game->phase == PHASE_SELECT_TARGET &&
+        game->selectedUnit >= 0 && game->selectedUnit < UNIT_COUNT) {
+        const Unit *unit = &game->units[game->selectedUnit];
+        fixedAreaTarget = unit->awakened &&
+                          (unit->type == UNIT_A || unit->type == UNIT_B);
+    }
     if (game->phase != PHASE_SELECT_ACTION &&
         game->phase != PHASE_AWAKENING_NOTICE &&
-        game->phase != PHASE_SELECT_AWAKENING) {
+        game->phase != PHASE_SELECT_AWAKENING &&
+        !fixedAreaTarget) {
         gameMoveCursor(game, input);
     }
     /* 現在のphaseだけに入力を渡す。これが状態機械の中心。 */

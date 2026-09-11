@@ -614,6 +614,7 @@ static void testAutomaticAwakening(void)
 static void testAwakenedAAreaAttack(void)
 {
     Game game;
+    GameInput moveHiddenCursor = noInput();
     gameInit(&game);
     game.units[0].x = 3;
     game.units[0].y = 4;
@@ -633,6 +634,10 @@ static void testAwakenedAAreaAttack(void)
     assert(boardCanAttack(&game, 0, 4));
     gameUpdate(&game, confirmInput());
     assert(game.phase == PHASE_SELECT_TARGET);
+    moveHiddenCursor.right = true;
+    gameUpdate(&game, moveHiddenCursor);
+    assert(game.cursorX == game.units[3].x);
+    assert(game.cursorY == game.units[3].y);
     gameUpdate(&game, confirmInput());
     assert(game.units[3].hp == 30);
     assert(game.units[4].hp == 30);
