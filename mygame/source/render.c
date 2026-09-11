@@ -48,11 +48,13 @@
  */
 enum {
     OAM_CURSOR = 0,
+    OAM_AREA_BORDER_BASE = 1,
     OAM_UNIT_BASE = 8,
     OAM_ACTED_BASE = 16,
     OAM_MOVE_BASE = 32,
     OAM_ATTACK_BASE = 40,
-    OAM_HIGHLIGHT_MAX = 8
+    OAM_HIGHLIGHT_MAX = 8,
+    OAM_AREA_BORDER_MAX = 3
 };
 
 /*
@@ -66,6 +68,8 @@ static u16 *uiPixels;
 /* [プレイヤー][A/B/C]ごとに32×32画像のVRAMアドレスを保持。 */
 static u16 *unitGraphics[2][TEAM_SIZE];
 static u16 *cursorGraphics;
+/* 外周として必要な上下左右の組み合わせ16通り。添字の各bitが辺を表す。 */
+static u16 *areaBorderGraphics[16];
 static u16 *moveGraphics;
 static u16 *attackGraphics;
 static u16 *actedGraphics;
@@ -188,6 +192,16 @@ static void makeBorderGraphics(u16 *graphics, u16 color, bool checker)
     fillRect(graphics, TILE_SIZE - 2, 0, 2, TILE_SIZE, color);
 }
 
+/* 複数マスを一続きに囲うため、指定された外周辺だけを持つ黄色枠を作る。 */
+static void makeAreaBorderGraphics(u16 *graphics, int edges, u16 color)
+{
+    clearSprite(graphics);
+    if (edges & 1) fillRect(graphics, 0, 0, TILE_SIZE, 2, color);
+    if (edges & 2) fillRect(graphics, TILE_SIZE - 2, 0, 2, TILE_SIZE, color);
+    if (edges & 4) fillRect(graphics, 0, TILE_SIZE - 2, TILE_SIZE, 2, color);
+    if (edges & 8) fillRect(graphics, 0, 0, 2, TILE_SIZE, color);
+}
+
 /* 行動済みユニットの右上へ重ねる、小さな灰色の印を作る。 */
 static void makeActedGraphics(u16 *graphics)
 {
@@ -274,6 +288,51 @@ static void setBitmapSprite(int id, int x, int y, int priority, int alpha, u16 *
 {
     oamSet(&oamMain, id, x, y, priority, alpha, SpriteSize_32x32,
            SpriteColorFormat_Bmp, graphics, -1, false, false, false, false, false);
+}
+
+/* 選択中キャラが、覚醒後に複数マスをまとめて攻撃するA/Bか確認する。 */
+static bool selectedUnitHasAreaAttack(const Game *game)
+{
+    const Unit *unit;
+    if (game->selectedUnit < 0 || game->selectedUnit >= UNIT_COUNT) return false;
+    unit = &game->units[game->selectedUnit];
+    return unit->alive && unit->awakened &&
+           (unit->type == UNIT_A || unit->type == UNIT_B);
+}
+
+/*
+ * 覚醒A/Bの有効な攻撃マスを、内側の線がない一続きの黄色枠で囲う。
+ * 戻り値は1マス以上を描けたか。盤面端などで全範囲が外ならfalse。
+ */
+static bool renderAreaAttackBorder(const Game *game, int fromX, int fromY)
+{
+    bool cells[BOARD_HEIGHT][BOARD_WIDTH] = {{false}};
+    int x;
+    int y;
+    int count = 0;
+
+    if (!selectedUnitHasAreaAttack(game)) return false;
+    for (y = 0; y < BOARD_HEIGHT; y++) {
+        for (x = 0; x < BOARD_WIDTH; x++) {
+            cells[y][x] = boardCanAttackFrom(game, game->selectedUnit,
+                                             fromX, fromY, x, y);
+        }
+    }
+    for (y = 0; y < BOARD_HEIGHT && count < OAM_AREA_BORDER_MAX; y++) {
+        for (x = 0; x < BOARD_WIDTH && count < OAM_AREA_BORDER_MAX; x++) {
+            int edges = 0;
+            if (!cells[y][x]) continue;
+            if (y == 0 || !cells[y - 1][x]) edges |= 1;
+            if (x == BOARD_WIDTH - 1 || !cells[y][x + 1]) edges |= 2;
+            if (y == BOARD_HEIGHT - 1 || !cells[y + 1][x]) edges |= 4;
+            if (x == 0 || !cells[y][x - 1]) edges |= 8;
+            setBitmapSprite(OAM_AREA_BORDER_BASE + count,
+                            x * TILE_SIZE, y * TILE_SIZE,
+                            0, 15, areaBorderGraphics[edges]);
+            count++;
+        }
+    }
+    return count > 0;
 }
 
 /* 移動候補へカーソルを合わせたとき、その地点から届く全攻撃マスを表示する。 */
@@ -724,6 +783,7 @@ void renderInit(void)
 {
     int owner;
     int type;
+    int edges;
 
     /* メインエンジン（盤面）を上画面、サブエンジン（UI）を下画面へ割り当ててる。 */
     lcdMainOnTop();
@@ -763,6 +823,12 @@ void renderInit(void)
     }
     /* カーソル、移動・攻撃範囲、行動済み印も同じ32×32で確保する。 */
     cursorGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
+    for (edges = 0; edges < 16; edges++) {
+        areaBorderGraphics[edges] = oamAllocateGfx(&oamMain, SpriteSize_32x32,
+                                                   SpriteColorFormat_Bmp);
+        makeAreaBorderGraphics(areaBorderGraphics[edges], edges,
+                               makeColor(31, 31, 0));
+    }
     moveGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
     attackGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
     actedGraphics = oamAllocateGfx(&oamMain, SpriteSize_32x32, SpriteColorFormat_Bmp);
@@ -861,6 +927,8 @@ void renderTitle(int page)
 /* 1フレームのGameから、次の画面内容をOAM/VRAMへ準備。 */
 void renderGame(const Game *game)
 {
+    bool renderedAreaBorder = false;
+
     if (game->phase == PHASE_AWAKENING_NOTICE) {
         oamClear(&oamMain, 0, 128);
         if (!showingAwakeningNotice) {
@@ -879,8 +947,23 @@ void renderGame(const Game *game)
     /* 攻撃範囲と行動済み印はユニットより手前、カーソルはOAM番号で最前面。 */
     renderHighlights(game);
     renderUnits(game);
-    setBitmapSprite(OAM_CURSOR, game->cursorX * TILE_SIZE, game->cursorY * TILE_SIZE,
-                    0, 15, cursorGraphics);
+    if (selectedUnitHasAreaAttack(game)) {
+        if (game->phase == PHASE_SELECT_TARGET) {
+            const Unit *unit = &game->units[game->selectedUnit];
+            renderedAreaBorder = renderAreaAttackBorder(game, unit->x, unit->y);
+        } else if (game->phase == PHASE_SELECT_MOVE &&
+                   boardCanMoveTo(game, game->selectedUnit,
+                                  game->cursorX, game->cursorY)) {
+            renderedAreaBorder = renderAreaAttackBorder(game,
+                                                        game->cursorX,
+                                                        game->cursorY);
+        }
+    }
+    /* 範囲全体を囲えない状態では、位置を見失わないよう通常枠を残す。 */
+    if (!renderedAreaBorder) {
+        setBitmapSprite(OAM_CURSOR, game->cursorX * TILE_SIZE,
+                        game->cursorY * TILE_SIZE, 0, 15, cursorGraphics);
+    }
     renderStatusScreen(game);
 }
 
