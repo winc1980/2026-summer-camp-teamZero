@@ -112,6 +112,25 @@ static void gameResetActed(Game *game, Player player)
     }
 }
 
+/* 自分のターン開始時、建造物上の生存キャラクターを20回復する。 */
+static bool gameHealUnitsOnBuildings(Game *game, Player player)
+{
+    int i;
+    bool healed = false;
+    for (i = 0; i < UNIT_COUNT; i++) {
+        Unit *unit = &game->units[i];
+        if (!unit->alive || unit->owner != player ||
+            game->terrain[unit->y][unit->x] != TERRAIN_BUILDING ||
+            unit->hp >= INITIAL_HP) {
+            continue;
+        }
+        unit->hp += BUILDING_HEAL_AMOUNT;
+        if (unit->hp > INITIAL_HP) unit->hp = INITIAL_HP;
+        healed = true;
+    }
+    return healed;
+}
+
 /* 次に選べる最初の自軍ユニットへ黄色カーソルを合わせる。 */
 static void gameFocusFirstAvailableUnit(Game *game)
 {
@@ -160,14 +179,21 @@ static bool gamePrepareAwakening(Game *game)
 /* 相手へ手番を渡し、そのプレイヤーの行動状態と画面状態を初期化。 */
 static void gameBeginNextTurn(Game *game)
 {
+    bool healed;
+
     /* 現在プレイヤーを反対側へ置き換える。 */
     game->currentPlayer = otherPlayer(game->currentPlayer);
     gameResetActed(game, game->currentPlayer);
     game->selectedUnit = -1;
     game->phase = PHASE_SELECT_UNIT;
     gameFocusFirstAvailableUnit(game);
+    healed = gameHealUnitsOnBuildings(game, game->currentPlayer);
     if (!gamePrepareAwakening(game)) {
-        gameSetMessage(game, "プレイヤー%dのばん", (int)game->currentPlayer + 1);
+        if (healed) {
+            gameSetMessage(game, "たてもののこうか HP20かいふく");
+        } else {
+            gameSetMessage(game, "プレイヤー%dのばん", (int)game->currentPlayer + 1);
+        }
     }
 }
 

@@ -54,6 +54,8 @@ static GameInput downInput(void)
     return input;
 }
 
+static void makeFocusedUnitWait(Game *game);
+
 /* gameInit直後の手番・phase・6体の種類と配置を確認する。 */
 static void testInitialState(void)
 {
@@ -220,6 +222,46 @@ static void testMovementRules(void)
     game.units[5].y = 3;
     assert(boardCanMoveTo(&game, 5, 2, 4));
     assert(boardCanMoveTo(&game, 5, 3, 2));
+}
+
+/* 地形配置、通行可否、建造物によるターン開始時の回復を確認する。 */
+static void testTerrainRulesAndHealing(void)
+{
+    Game game;
+    int y;
+    gameInit(&game);
+
+    assert(game.terrain[1][1] == TERRAIN_MOUNTAIN);
+    assert(game.terrain[4][5] == TERRAIN_MOUNTAIN);
+    assert(game.terrain[1][5] == TERRAIN_RIVER);
+    assert(game.terrain[4][1] == TERRAIN_RIVER);
+    assert(game.terrain[2][3] == TERRAIN_BUILDING);
+    assert(game.terrain[3][4] == TERRAIN_BUILDING);
+    for (y = 0; y < BOARD_HEIGHT; y++)
+        assert(game.terrain[y][BOARD_WIDTH - 1] == TERRAIN_PLAIN);
+    assert(!boardTerrainIsWalkable(TERRAIN_MOUNTAIN));
+    assert(!boardTerrainIsWalkable(TERRAIN_RIVER));
+    assert(boardTerrainIsWalkable(TERRAIN_BUILDING));
+
+    game.units[0].x = 3;
+    game.units[0].y = 3;
+    assert(boardCanMoveTo(&game, 0, 3, 2));
+    game.units[0].x = 1;
+    game.units[0].y = 2;
+    assert(!boardCanMoveTo(&game, 0, 1, 1));
+    game.units[0].x = 5;
+    game.units[0].y = 2;
+    assert(!boardCanMoveTo(&game, 0, 5, 1));
+
+    gameInit(&game);
+    game.units[3].x = 3;
+    game.units[3].y = 2;
+    game.units[3].hp = 85;
+    makeFocusedUnitWait(&game);
+    makeFocusedUnitWait(&game);
+    makeFocusedUnitWait(&game);
+    assert(game.currentPlayer == PLAYER_TWO);
+    assert(game.units[3].hp == INITIAL_HP);
 }
 
 /* 攻撃範囲テスト用に、攻撃者と対象以外を一度盤面から除く。 */
@@ -708,6 +750,7 @@ int main(void)
     testAttackPatternOffsets();
     testMovePatternOffsets();
     testMovementRules();
+    testTerrainRulesAndHealing();
     testAttackRanges();
     testAttackablePositions();
     testCancelRestoresPosition();

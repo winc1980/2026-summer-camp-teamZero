@@ -38,6 +38,7 @@
 /* 1チーム3体 × 2人。括弧により式として安全に展開される。 */
 #define UNIT_COUNT (TEAM_SIZE * 2)
 #define INITIAL_HP 100
+#define BUILDING_HEAL_AMOUNT 20
 
 /*
  * enumは、単なる0・1・-1に意味のある名前を付ける型。

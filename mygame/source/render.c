@@ -218,15 +218,69 @@ static void makeActedGraphics(u16 *graphics)
     }
 }
 
-/* 地形enumを仮表示色へ変換する。最終画像へ差し替えるまでの表示。 */
+/* 地形enumを、コード描画する各地形の下地色へ変換する。 */
 static u16 terrainColor(TerrainType terrain)
 {
     switch (terrain) {
-        case TERRAIN_MOUNTAIN: return makeColor(17, 12, 7);
-        case TERRAIN_RIVER: return makeColor(4, 16, 28);
+        case TERRAIN_MOUNTAIN: return makeColor(2, 10, 4);
+        case TERRAIN_RIVER: return makeColor(3, 14, 27);
         case TERRAIN_BUILDING: return makeColor(19, 19, 19);
         case TERRAIN_PLAIN:
         default: return makeColor(7, 22, 8);
+    }
+}
+
+/* 盤面背景の1マス内へ、256pxの行幅を保って長方形を描く。 */
+static void fillTerrainRect(int left, int top, int x, int y,
+                            int width, int height, u16 color)
+{
+    int row;
+    int column;
+    for (row = y; row < y + height; row++) {
+        for (column = x; column < x + width; column++) {
+            if (column > 0 && column < TILE_SIZE - 1 &&
+                row > 0 && row < TILE_SIZE - 1) {
+                boardPixels[(top + row) * 256 + left + column] = color;
+            }
+        }
+    }
+}
+
+/* 外部画像を使わず、地形の意味を32px内の単純な図形で描き分ける。 */
+static void drawTerrainDecoration(TerrainType terrain, int left, int top)
+{
+    int i;
+    u16 light;
+
+    if (terrain == TERRAIN_MOUNTAIN) {
+        /* 高さの違う2つの峰と岩肌を重ね、規則的な三角形に見せない。 */
+        light = makeColor(5, 20, 8);
+        for (i = 0; i < 9; i++) {
+            fillTerrainRect(left, top, 9 - i / 2, 6 + i * 2, 4 + i, 2, light);
+        }
+        for (i = 0; i < 7; i++) {
+            fillTerrainRect(left, top, 20 - i / 2, 11 + i * 2, 3 + i, 2,
+                            makeColor(4, 16, 6));
+        }
+        fillTerrainRect(left, top, 8, 15, 5, 3, makeColor(18, 20, 17));
+        fillTerrainRect(left, top, 18, 20, 4, 3, makeColor(14, 17, 14));
+        fillTerrainRect(left, top, 12, 25, 13, 3, makeColor(3, 14, 5));
+    } else if (terrain == TERRAIN_RIVER) {
+        /* 湖面へ短い波紋だけを置き、縦に流れる川との混同を避ける。 */
+        light = makeColor(8, 25, 31);
+        fillTerrainRect(left, top, 5, 10, 8, 2, light);
+        fillTerrainRect(left, top, 12, 12, 7, 2, light);
+        fillTerrainRect(left, top, 18, 10, 7, 2, light);
+        fillTerrainRect(left, top, 9, 22, 6, 2, light);
+        fillTerrainRect(left, top, 14, 20, 8, 2, light);
+    } else if (terrain == TERRAIN_BUILDING) {
+        u16 wall = makeColor(25, 22, 14);
+        u16 roof = makeColor(31, 20, 3);
+        fillTerrainRect(left, top, 7, 12, 18, 15, wall);
+        for (i = 0; i < 8; i++) {
+            fillTerrainRect(left, top, 7 + i, 11 - i, 18 - i * 2, 2, roof);
+        }
+        fillTerrainRect(left, top, 14, 19, 5, 8, makeColor(8, 5, 2));
     }
 }
 
@@ -275,6 +329,7 @@ static void drawBoard(const Game *game)
                         boardPixels[pixelY * 256 + pixelX] = color;
                     }
                 }
+                drawTerrainDecoration(terrain, left, top);
             }
         }
     }
@@ -907,15 +962,23 @@ void renderTitle(int page)
         drawCenteredText(uiPixels, 104, "キャラせんたく  >  いどう  >", white);
         drawCenteredText(uiPixels, 121, "こうげき  または  たいき  >", white);
         drawCenteredText(uiPixels, 138, "キャラせんたく (3たいぶん)", white);
-        drawCenteredText(uiPixels, 151, "A:つづき      1/2", cyan);
-    } else {
+        drawCenteredText(uiPixels, 151, "A:つづき      1/3", cyan);
+    } else if (page == 1) {
         drawCenteredText(uiPixels, 29, "かくせい", cyan);
         drawCenteredText(uiPixels, 47, "なかまが1たい たおれると", white);
         drawCenteredText(uiPixels, 63, "のこったキャラから 1たいをえらぶ", white);
         drawCenteredText(uiPixels, 79, "2たいたおされたら 1たいじどうでかくせい", white);
         drawCenteredText(uiPixels, 103, "AとB:はんいこうげきにへんか", white);
         drawCenteredText(uiPixels, 123, "C:こうげきして HP20かいふく", white);
-        drawCenteredText(uiPixels, 151, "B:もどる      2/2", cyan);
+        drawCenteredText(uiPixels, 151, "B:もどる A:ちけいへ  2/3", cyan);
+    } else {
+        drawCenteredText(uiPixels, 32, "ちけい", cyan);
+        drawCenteredText(uiPixels, 55, "やま:はいれない", white);
+        drawCenteredText(uiPixels, 74, "みずうみ:はいれない", white);
+        drawCenteredText(uiPixels, 93, "たてもの:はいれる", white);
+        drawCenteredText(uiPixels, 116, "ターンのはじめに", white);
+        drawCenteredText(uiPixels, 132, "たてもののうえで HP20かいふく", white);
+        drawCenteredText(uiPixels, 151, "B:もどる      3/3", cyan);
     }
     drawCenteredText(uiPixels, 177, "START:ゲームかいし", yellow);
 

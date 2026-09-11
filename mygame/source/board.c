@@ -25,7 +25,7 @@
 
 #include "board.h"
 
-/* 全マスを草原扱いのPLAINで初期化。 */
+/* 草原で埋めた後、180度回転対称を基準に固定地形を配置する。 */
 void boardInit(Game *game)
 {
     /* Cではループ変数を先に宣言できる。xが列、yが行。 */
@@ -41,6 +41,13 @@ void boardInit(Game *game)
             game->terrain[y][x] = TERRAIN_PLAIN;
         }
     }
+    /* 旧対称案を基準に、右側の障害物だけ1列内側へ寄せて端への偏りを抑える。 */
+    game->terrain[1][1] = TERRAIN_MOUNTAIN;
+    game->terrain[4][5] = TERRAIN_MOUNTAIN;
+    game->terrain[1][5] = TERRAIN_RIVER;
+    game->terrain[4][1] = TERRAIN_RIVER;
+    game->terrain[2][3] = TERRAIN_BUILDING;
+    game->terrain[3][4] = TERRAIN_BUILDING;
 }
 
 /* 配列へ触る前に、xとyが両方とも有効範囲内か確認する。 */
@@ -50,10 +57,10 @@ bool boardIsInside(int x, int y)
     return x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT;
 }
 
-/* （重要！）将来、山・川・建造物ごとの通行ルールを足す入口。 */
+/* 山・川は進入不可、草原・建造物は進入可能。 */
 bool boardTerrainIsWalkable(TerrainType terrain)
 {
-    return terrain == TERRAIN_PLAIN;
+    return terrain == TERRAIN_PLAIN || terrain == TERRAIN_BUILDING;
 }
 
 /* (x,y)に生存中のユニットがいるか、6体の配列を先頭から探す。 */
