@@ -233,15 +233,15 @@ static void testTerrainRulesAndHealing(void)
     gameInit(&game);
 
     assert(game.terrain[1][1] == TERRAIN_MOUNTAIN);
-    assert(game.terrain[4][6] == TERRAIN_MOUNTAIN);
+    assert(game.terrain[4][1] == TERRAIN_MOUNTAIN);
     assert(game.terrain[1][6] == TERRAIN_RIVER);
-    assert(game.terrain[4][1] == TERRAIN_RIVER);
+    assert(game.terrain[4][6] == TERRAIN_RIVER);
     assert(game.terrain[2][3] == TERRAIN_BUILDING);
-    assert(game.terrain[3][4] == TERRAIN_BUILDING);
+    assert(game.terrain[3][3] == TERRAIN_BUILDING);
     for (y = 0; y < BOARD_HEIGHT; y++) {
         for (x = 0; x < BOARD_WIDTH; x++) {
             assert(game.terrain[y][x] ==
-                   game.terrain[BOARD_HEIGHT - 1 - y][BOARD_WIDTH - 1 - x]);
+                   game.terrain[BOARD_HEIGHT - 1 - y][x]);
         }
     }
     assert(!boardTerrainIsWalkable(TERRAIN_MOUNTAIN));
@@ -572,6 +572,8 @@ static void testAwakeningSelection(void)
     makeFocusedUnitWait(&game);
     makeFocusedUnitWait(&game);
     assert(game.currentPlayer == PLAYER_TWO);
+    assert(game.phase == PHASE_AWAKENING_NOTICE);
+    gameUpdate(&game, confirmInput());
     assert(game.phase == PHASE_SELECT_AWAKENING);
     assert(game.cursorX == game.units[3].x && game.cursorY == game.units[3].y);
 
@@ -600,6 +602,8 @@ static void testAutomaticAwakening(void)
     makeFocusedUnitWait(&game);
     makeFocusedUnitWait(&game);
     assert(game.currentPlayer == PLAYER_TWO);
+    assert(game.phase == PHASE_AWAKENING_NOTICE);
+    gameUpdate(&game, confirmInput());
     assert(game.phase == PHASE_SELECT_UNIT);
     assert(game.awakeningChosen[PLAYER_TWO]);
     assert(game.units[5].awakened);
@@ -628,6 +632,8 @@ static void testAwakenedAAreaAttack(void)
     assert(boardCanAttack(&game, 0, 3));
     assert(boardCanAttack(&game, 0, 4));
     gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_TARGET);
+    gameUpdate(&game, confirmInput());
     assert(game.units[3].hp == 30);
     assert(game.units[4].hp == 30);
     assert(game.units[0].acted);
@@ -653,6 +659,8 @@ static void testAwakenedBAreaAttack(void)
     game.selectedAction = ACTION_ATTACK;
     game.phase = PHASE_SELECT_ACTION;
 
+    gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_TARGET);
     gameUpdate(&game, confirmInput());
     assert(game.units[3].hp == 60);
     assert(game.units[4].hp == 60);
@@ -680,6 +688,8 @@ static void testAreaAttackCanWin(void)
     game.selectedAction = ACTION_ATTACK;
     game.phase = PHASE_SELECT_ACTION;
 
+    gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_TARGET);
     gameUpdate(&game, confirmInput());
     assert(!game.units[3].alive && !game.units[4].alive);
     assert(game.phase == PHASE_GAME_OVER);
