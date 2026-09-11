@@ -137,7 +137,7 @@ static void gameAwakenUnit(Game *game, int unitIndex)
     gameFocusUnit(game, unitIndex);
 }
 
-/* 味方を失ったプレイヤーについて、覚醒選択または自動覚醒を開始する。 */
+/* 味方を失ったプレイヤーについて、操作前に覚醒告知を開始する。 */
 static bool gamePrepareAwakening(Game *game)
 {
     int i;
@@ -149,15 +149,9 @@ static bool gamePrepareAwakening(Game *game)
     for (i = 0; i < UNIT_COUNT; i++) {
         Unit *unit = &game->units[i];
         if (!unit->alive || unit->owner != game->currentPlayer) continue;
-        if (living == 1) {
-            gameAwakenUnit(game, i);
-            game->phase = PHASE_SELECT_UNIT;
-            gameSetMessage(game, "さいごのキャラがかくせい");
-        } else {
-            gameFocusUnit(game, i);
-            game->phase = PHASE_SELECT_AWAKENING;
-            gameSetMessage(game, "かくせいするキャラをえらぶ");
-        }
+        gameFocusUnit(game, i);
+        game->phase = PHASE_AWAKENING_NOTICE;
+        gameSetMessage(game, "なかまをうしなった かくせい!");
         return true;
     }
     return false;
@@ -254,6 +248,28 @@ static void gameUpdateSelectAwakening(Game *game, GameInput input)
     gameSetMessage(game, "%sがかくせい",
                    unitCharacterName(game->units[current].owner,
                                      game->units[current].type));
+}
+
+/* 覚醒告知を確認後、生存数に応じて選択または自動覚醒へ進む。 */
+static void gameUpdateAwakeningNotice(Game *game, GameInput input)
+{
+    int i;
+    int living;
+
+    if (!input.confirm) return;
+    living = gameLivingUnitCount(game, game->currentPlayer);
+    if (living == 1) {
+        for (i = 0; i < UNIT_COUNT; i++) {
+            if (game->units[i].alive && game->units[i].owner == game->currentPlayer) {
+                gameAwakenUnit(game, i);
+                game->phase = PHASE_SELECT_UNIT;
+                gameSetMessage(game, "さいごのキャラがじどうでかくせい");
+                return;
+            }
+        }
+    }
+    game->phase = PHASE_SELECT_AWAKENING;
+    gameSetMessage(game, "かくせいするキャラをえらぶ");
 }
 
 /* 1体へダメージを与え、HPが0なら盤面から除外する。 */
@@ -384,18 +400,16 @@ static void gameUpdateSelectAction(Game *game, GameInput input)
         return;
     }
 
-    /* 覚醒A・Bは赤枠内の敵全員が対象なので、個別選択を挟まず発動する。 */
-    if (unit->awakened && (unit->type == UNIT_A || unit->type == UNIT_B)) {
-        gamePerformAreaAttack(game);
-        return;
-    }
-
     /* ATTACKはtarget>=0のときだけ選べるので、対象選択へそのまま進める。 */
     /* 最初の攻撃可能対象へカーソルを移し、対象選択状態へ進む。 */
     game->cursorX = game->units[target].x;
     game->cursorY = game->units[target].y;
     game->phase = PHASE_SELECT_TARGET;
-    gameSetMessage(game, "こうげきできるてきをえらぶ B:もどる");
+    if (unit->awakened && (unit->type == UNIT_A || unit->type == UNIT_B)) {
+        gameSetMessage(game, "はんいこうげき A:はつどう B:もどる");
+    } else {
+        gameSetMessage(game, "こうげきできるてきをえらぶ B:もどる");
+    }
 }
 
 /* PHASE_SELECT_TARGET中の攻撃対象決定処理。 */
@@ -425,6 +439,11 @@ static void gameUpdateSelectTarget(Game *game, GameInput input)
 
     attacker = &game->units[game->selectedUnit];
     defender = &game->units[target];
+    /* 覚醒A・Bは対象を確認してAを押した時点で、範囲内の敵全員へ攻撃する。 */
+    if (attacker->awakened && (attacker->type == UNIT_A || attacker->type == UNIT_B)) {
+        gamePerformAreaAttack(game);
+        return;
+    }
     gameDamageUnit(defender, attacker->attack);
     /* 覚醒Cは攻撃が命中したとき、自身のHPを最大100まで20回復する。 */
     if (attacker->awakened && attacker->type == UNIT_C) {
@@ -477,12 +496,14 @@ void gameUpdate(Game *game, GameInput input)
      * それ以外の状態だけ盤面カーソルを動かすことで、黄色枠の誤移動を防ぐ。
      */
     if (game->phase != PHASE_SELECT_ACTION &&
+        game->phase != PHASE_AWAKENING_NOTICE &&
         game->phase != PHASE_SELECT_AWAKENING) {
         gameMoveCursor(game, input);
     }
     /* 現在のphaseだけに入力を渡す。これが状態機械の中心。 */
     switch (game->phase) {
         case PHASE_SELECT_UNIT: gameUpdateSelectUnit(game, input); break;
+        case PHASE_AWAKENING_NOTICE: gameUpdateAwakeningNotice(game, input); break;
         case PHASE_SELECT_AWAKENING: gameUpdateSelectAwakening(game, input); break;
         case PHASE_SELECT_MOVE: gameUpdateSelectMove(game, input); break;
         case PHASE_SELECT_ACTION: gameUpdateSelectAction(game, input); break;

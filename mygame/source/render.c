@@ -75,6 +75,7 @@ static bool hasLastConsoleGame;
 /* 盤面の黒緑点滅を防ぐため、前回描いた地形だけを別に保存する。 */
 static TerrainType lastBoardTerrain[BOARD_HEIGHT][BOARD_WIDTH];
 static bool hasLastBoardTerrain;
+static bool showingAwakeningNotice;
 
 /* 0〜31のRGB成分を、DSの15bit色+不透明ビットを持つu16へ変換する。 */
 static u16 makeColor(int r, int g, int b)
@@ -379,6 +380,7 @@ static const char *phaseName(GamePhase phase)
 {
     switch (phase) {
         case PHASE_SELECT_UNIT: return "キャラせんたく";
+        case PHASE_AWAKENING_NOTICE: return "かくせい";
         case PHASE_SELECT_AWAKENING: return "かくせいキャラせんたく";
         case PHASE_SELECT_MOVE: return "いどうさきせんたく";
         case PHASE_SELECT_ACTION: return "こうどうせんたく";
@@ -539,9 +541,14 @@ static void drawTeamSummary(const Game *game, Player owner, int x, int y, u16 co
 {
     int base = owner == PLAYER_ONE ? 0 : TEAM_SIZE;
     char line[40];
+    const char *labelA = owner == PLAYER_ONE ? "ゆ" : "フ";
+    const char *labelB = owner == PLAYER_ONE ? "ま" : "ゴ";
+    const char *labelC = owner == PLAYER_ONE ? "エ" : "ヴ";
 
-    snprintf(line, sizeof(line), "P%d A%3d B%3d C%3d", (int)owner + 1,
-             game->units[base].hp, game->units[base + 1].hp, game->units[base + 2].hp);
+    snprintf(line, sizeof(line), "P%d %s%3d %s%3d %s%3d", (int)owner + 1,
+             labelA, game->units[base].hp,
+             labelB, game->units[base + 1].hp,
+             labelC, game->units[base + 2].hp);
     japaneseTextDraw(uiPixels, x, y, line, color);
 }
 
@@ -570,6 +577,8 @@ static void renderAwakeningScreen(const Game *game, u16 white, u16 yellow, u16 p
         snprintf(line, sizeof(line), "こうげきりょく %d",
                  unitAwakenedAttackForType(unit->type));
         japaneseTextDraw(uiPixels, 28, 105, line, white);
+        snprintf(line, sizeof(line), "HP %d/%d", unit->hp, INITIAL_HP);
+        japaneseTextDraw(uiPixels, 150, 105, line, white);
         snprintf(line, sizeof(line), "こうか %s", unitAwakeningEffectName(unit->type));
         japaneseTextDraw(uiPixels, 28, 121, line, white);
     }
@@ -614,6 +623,15 @@ static void renderStatusScreen(const Game *game)
         snprintf(line, sizeof(line), "プレイヤー%dのかち!", (int)game->winner + 1);
         japaneseTextDraw(uiPixels, 64, 76, line, winnerColor);
         japaneseTextDraw(uiPixels, 64, 108, "START:もういちど", white);
+        return;
+    }
+
+    if (game->phase == PHASE_AWAKENING_NOTICE) {
+        fillUiRect(18, 47, 220, 92, panel);
+        drawUiFrame(18, 47, 220, 92, playerColor(game->currentPlayer));
+        japaneseTextDraw(uiPixels, 48, 68, "なかまがたおれた", white);
+        japaneseTextDraw(uiPixels, 48, 89, "のこったキャラがかくせい", yellow);
+        japaneseTextDraw(uiPixels, 80, 119, "A:つづける", white);
         return;
     }
 
@@ -778,6 +796,22 @@ static void drawCenteredText(u16 *pixels, int y, const char *text, u16 color)
     japaneseTextDraw(pixels, (256 - uiTextWidth(text)) / 2, y, text, color);
 }
 
+/* 覚醒が発生したことを、キャラクター選択前に上画面全体で知らせる。 */
+static void renderAwakeningNotice(const Game *game)
+{
+    int i;
+    char line[32];
+    u16 background = makeColor(2, 2, 7);
+    u16 white = makeColor(31, 31, 31);
+    u16 yellow = makeColor(31, 28, 2);
+
+    for (i = 0; i < 256 * 192; i++) boardPixels[i] = background;
+    snprintf(line, sizeof(line), "プレイヤー%d", (int)game->currentPlayer + 1);
+    drawCenteredText(boardPixels, 63, line, white);
+    drawCenteredText(boardPixels, 91, "かくせい!", yellow);
+    drawCenteredText(boardPixels, 121, "A:つづける", white);
+}
+
 /* 起動直後に、対戦形式と基本操作を短く確認できる画面を描く。 */
 void renderTitle(int page)
 {
@@ -807,16 +841,15 @@ void renderTitle(int page)
         drawCenteredText(uiPixels, 104, "キャラせんたく  >  いどう  >", white);
         drawCenteredText(uiPixels, 121, "こうげき  または  たいき  >", white);
         drawCenteredText(uiPixels, 138, "キャラせんたく (3たいぶん)", white);
-        drawCenteredText(uiPixels, 158, "A/みぎ:つぎ      1/2", cyan);
+        drawCenteredText(uiPixels, 151, "A:つづき      1/2", cyan);
     } else {
         drawCenteredText(uiPixels, 29, "かくせい", cyan);
         drawCenteredText(uiPixels, 47, "なかまが1たい たおれると", white);
         drawCenteredText(uiPixels, 63, "のこったキャラから 1たいをえらぶ", white);
-        drawCenteredText(uiPixels, 79, "1たいだけなら じどうでかくせい", white);
-        drawCenteredText(uiPixels, 101, "A:たて2マスの はんいこうげき", white);
-        drawCenteredText(uiPixels, 117, "B:よこ3マスの はんいこうげき", white);
-        drawCenteredText(uiPixels, 133, "C:こうげきして HP20かいふく", white);
-        drawCenteredText(uiPixels, 158, "B/ひだり:もどる  2/2", cyan);
+        drawCenteredText(uiPixels, 79, "2たいたおされたら 1たいじどうでかくせい", white);
+        drawCenteredText(uiPixels, 103, "AとB:はんいこうげきにへんか", white);
+        drawCenteredText(uiPixels, 123, "C:こうげきして HP20かいふく", white);
+        drawCenteredText(uiPixels, 151, "B:もどる      2/2", cyan);
     }
     drawCenteredText(uiPixels, 177, "START:ゲームかいし", yellow);
 
@@ -828,6 +861,17 @@ void renderTitle(int page)
 /* 1フレームのGameから、次の画面内容をOAM/VRAMへ準備。 */
 void renderGame(const Game *game)
 {
+    if (game->phase == PHASE_AWAKENING_NOTICE) {
+        oamClear(&oamMain, 0, 128);
+        if (!showingAwakeningNotice) {
+            renderAwakeningNotice(game);
+            showingAwakeningNotice = true;
+            hasLastBoardTerrain = false;
+        }
+        renderStatusScreen(game);
+        return;
+    }
+    showingAwakeningNotice = false;
     /* 静的な背景は変更時のみ更新する。 */
     drawBoardIfChanged(game);
     /* 前フレームのスプライト登録を一旦消し、現状態から登録し直す。 */

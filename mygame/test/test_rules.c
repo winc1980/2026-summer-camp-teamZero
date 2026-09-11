@@ -525,6 +525,8 @@ static void testAwakeningSelection(void)
     makeFocusedUnitWait(&game);
     makeFocusedUnitWait(&game);
     assert(game.currentPlayer == PLAYER_TWO);
+    assert(game.phase == PHASE_AWAKENING_NOTICE);
+    gameUpdate(&game, confirmInput());
     assert(game.phase == PHASE_SELECT_AWAKENING);
     assert(game.cursorX == game.units[3].x && game.cursorY == game.units[3].y);
 
@@ -553,6 +555,8 @@ static void testAutomaticAwakening(void)
     makeFocusedUnitWait(&game);
     makeFocusedUnitWait(&game);
     assert(game.currentPlayer == PLAYER_TWO);
+    assert(game.phase == PHASE_AWAKENING_NOTICE);
+    gameUpdate(&game, confirmInput());
     assert(game.phase == PHASE_SELECT_UNIT);
     assert(game.awakeningChosen[PLAYER_TWO]);
     assert(game.units[5].awakened);
@@ -581,6 +585,8 @@ static void testAwakenedAAreaAttack(void)
     assert(boardCanAttack(&game, 0, 3));
     assert(boardCanAttack(&game, 0, 4));
     gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_TARGET);
+    gameUpdate(&game, confirmInput());
     assert(game.units[3].hp == 30);
     assert(game.units[4].hp == 30);
     assert(game.units[0].acted);
@@ -606,6 +612,8 @@ static void testAwakenedBAreaAttack(void)
     game.selectedAction = ACTION_ATTACK;
     game.phase = PHASE_SELECT_ACTION;
 
+    gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_TARGET);
     gameUpdate(&game, confirmInput());
     assert(game.units[3].hp == 60);
     assert(game.units[4].hp == 60);
@@ -633,6 +641,8 @@ static void testAreaAttackCanWin(void)
     game.selectedAction = ACTION_ATTACK;
     game.phase = PHASE_SELECT_ACTION;
 
+    gameUpdate(&game, confirmInput());
+    assert(game.phase == PHASE_SELECT_TARGET);
     gameUpdate(&game, confirmInput());
     assert(!game.units[3].alive && !game.units[4].alive);
     assert(game.phase == PHASE_GAME_OVER);

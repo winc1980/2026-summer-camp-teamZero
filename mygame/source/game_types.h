@@ -74,6 +74,7 @@ typedef enum {
  */
 typedef enum {
     PHASE_SELECT_UNIT = 0,
+    PHASE_AWAKENING_NOTICE,
     PHASE_SELECT_AWAKENING,
     PHASE_SELECT_MOVE,
     PHASE_SELECT_ACTION,

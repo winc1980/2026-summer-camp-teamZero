@@ -93,9 +93,9 @@ const char *unitSkillName(Player owner, UnitType type, bool awakened)
 const char *unitAwakeningEffectName(UnitType type)
 {
     switch (type) {
-        case UNIT_A: return "たて2マス はんい";
-        case UNIT_B: return "よこ3マス はんい";
-        case UNIT_C: return "1たい + HP20かいふく";
+        case UNIT_A: return "はんいこうげきにへんか";
+        case UNIT_B: return "はんいこうげきにへんか";
+        case UNIT_C: return "HP20かいふく";
         default: return "?";
     }
 }
