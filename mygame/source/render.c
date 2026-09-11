@@ -951,15 +951,9 @@ void renderGame(const Game *game)
         if (game->phase == PHASE_SELECT_TARGET) {
             const Unit *unit = &game->units[game->selectedUnit];
             renderedAreaBorder = renderAreaAttackBorder(game, unit->x, unit->y);
-        } else if (game->phase == PHASE_SELECT_MOVE &&
-                   boardCanMoveTo(game, game->selectedUnit,
-                                  game->cursorX, game->cursorY)) {
-            renderedAreaBorder = renderAreaAttackBorder(game,
-                                                        game->cursorX,
-                                                        game->cursorY);
         }
     }
-    /* 範囲全体を囲えない状態では、位置を見失わないよう通常枠を残す。 */
+    /* 範囲攻撃の確認中以外は、移動先や単体対象を示す通常枠を使う。 */
     if (!renderedAreaBorder) {
         setBitmapSprite(OAM_CURSOR, game->cursorX * TILE_SIZE,
                         game->cursorY * TILE_SIZE, 0, 15, cursorGraphics);
