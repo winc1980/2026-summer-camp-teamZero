@@ -6,16 +6,47 @@ Nintendo DSi向けにC言語とBlocksDSで制作した、1台交代操作式の2
 <p align="center">
   <img src="docs/screenshots/title-and-tutorial.png" alt="タイトル画面と遊び方画面" width="300">
   <img src="docs/screenshots/gameplay.png" alt="盤面と対戦中の下画面UI" width="300">
-  <img src="docs/screenshots/awakening-selection.jpg" alt="覚醒させるユニットの選択画面" width="300">
 </p>
 
-<p align="center"><em>タイトル・遊び方／地形を含む対戦画面／劣勢側がユニットを選ぶ覚醒画面</em></p>
+<p align="center"><em>タイトル・遊び方／地形を含む対戦画面</em></p>
 
 ## 公開版がA／B／C表示である理由
 
 合宿発表版と非公開の講評提出版では、DOT ILLUSTの素材を加工し、6体のキャラクター画像としてゲームへ組み込んだ。一方、同サイトの利用条件では素材そのものや加工素材の再配布が禁止されているため、公開GitHubリポジトリの`main`からは元画像と加工PNGを意図的に除外している。
 
 公開版では、コードで生成したA／B／Cの仮ユニットへ置き換えている。キャラクター画像以外のゲームルール、UI、覚醒、地形などはそのまま動作し、公開版だけでビルドと対戦が可能である。今後、公開・再配布が明確に認められた独自素材へ置き換える予定。
+
+## プレイ画面
+
+以下は公開版を実際に動かして撮影した画面。移動、地形、覚醒、キャラクターごとの効果、勝敗まで、一連の対戦で利用する主な画面を掲載している。
+
+<p align="center">
+  <img src="docs/screenshots/gameplay/01-move-preview.jpg" alt="移動候補と移動後の攻撃範囲を同時に確認する画面" width="300">
+  <img src="docs/screenshots/gameplay/02-building-heal.jpg" alt="建造物でHPを回復した中盤の対戦画面" width="300">
+</p>
+
+<p align="center"><em>移動先からの攻撃範囲プレビュー／建造物によるHP回復</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/gameplay/03-awakening-notice.jpg" alt="味方を失った側に表示される覚醒の告知画面" width="300">
+  <img src="docs/screenshots/gameplay/04-awakening-selection.jpg" alt="中盤の盤面とHPを見ながら覚醒させるユニットを選ぶ画面" width="300">
+</p>
+
+<p align="center"><em>味方を失った後の覚醒告知／残ったユニットから覚醒対象を選択</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/gameplay/05-awakened-a-area-attack.jpg" alt="覚醒したAの前方2マス範囲攻撃" width="300">
+  <img src="docs/screenshots/gameplay/06-awakened-b-area-attack.jpg" alt="覚醒したBの横3マス範囲攻撃" width="300">
+</p>
+
+<p align="center"><em>覚醒Aの前方範囲攻撃／覚醒Bの横方向範囲攻撃</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/gameplay/07-awakened-c-recovery.jpg" alt="覚醒したCの攻撃時HP回復効果" width="300">
+  <img src="docs/screenshots/gameplay/08-game-over.jpg" alt="対戦終了後の勝敗画面" width="300">
+</p>
+
+<p align="center"><em>覚醒Cの攻撃時HP回復／全滅後の勝敗表示と再戦案内</em></p>
 
 ## 制作概要
 
