@@ -16,16 +16,41 @@ Nintendo DSi向けにC言語とBlocksDSで制作した、1台交代操作式の2
 
 公開版では、コードで生成したA／B／Cの仮ユニットへ置き換えている。キャラクター画像以外のゲームルール、UI、覚醒、地形などはそのまま動作し、公開版だけでビルドと対戦が可能である。今後、公開・再配布が明確に認められた独自素材へ置き換える予定。
 
+非公開版では、各陣営のA／B／Cに次のキャラクター画像を割り当てている。表示名と技名も画像の題材に合わせており、公開版でも同じ性能と技名を使用している。
+
+| 陣営・型 | 非公開版のキャラクター | 通常技 | 覚醒技 |
+|---|---|---|---|
+| P1-A | 勇者 | ざんげき | せいなるいちげき |
+| P1-B | 魔法使い | サンダースパイク | サンダースパーク |
+| P1-C | エルフ | フェアリーアロー | フェアリーブレス |
+| P2-A | フランケン | パワースマッシュ | ボルトクラッシュ |
+| P2-B | ゴースト | ポルターガイスト | ナイトメアストーム |
+| P2-C | ヴァンパイア | ブラッドバイト | ブラッドドレイン |
+
+## melonDSで遊ぶ
+
+公開リポジトリでは生成済みのROMを配布していないため、用意済みのDev Containerで一度ビルドしてからmelonDSで起動する。
+
+1. [Docker Desktop](https://www.docker.com/products/docker-desktop/)、[Visual Studio Code](https://code.visualstudio.com/)、[Dev Containers拡張機能](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)を用意する。
+2. このリポジトリの`Code`から`Download ZIP`を選んで展開するか、Gitでcloneする。
+3. リポジトリをVisual Studio Codeで開き、コマンドパレットから`Dev Containers: Reopen in Container`を実行する。
+4. コンテナ内のターミナルで`cd /work/mygame`、`make clean`、`make`の順に実行する。
+5. [melonDS公式ダウンロードページ](https://melonds.kuribo64.net/downloads.php)から、使用しているOS向けのmelonDSを入手して起動する。
+6. melonDSの`File`から`Open ROM`を選び、生成された`mygame/mygame.nds`を開く。
+7. STARTボタンに割り当てられたキーを押してゲームを開始する。1台交代操作式のため、2人で同じキーボードまたはコントローラーを使用する。
+
+操作に反応しない場合は、melonDSの`Config`にある`Input and hotkeys`を開き、十字キー、A、B、STARTへ任意のキーボードまたはコントローラー入力を割り当てる。詳しい設定方法は[melonDS公式FAQ](https://melonds.kuribo64.net/faq.php)を参照。
+
 ## プレイ画面
 
 以下は公開版を実際に動かして撮影した画面。移動、地形、覚醒、キャラクターごとの効果、勝敗まで、一連の対戦で利用する主な画面を掲載している。
 
 <p align="center">
   <img src="docs/screenshots/gameplay/01-move-preview.jpg" alt="移動候補と移動後の攻撃範囲を同時に確認する画面" width="300">
-  <img src="docs/screenshots/gameplay/02-building-heal.jpg" alt="建造物でHPを回復した中盤の対戦画面" width="300">
+  <img src="docs/screenshots/gameplay/08-game-over.jpg" alt="対戦終了後の勝敗画面" width="300">
 </p>
 
-<p align="center"><em>移動先からの攻撃範囲プレビュー／建造物によるHP回復</em></p>
+<p align="center"><em>移動先からの攻撃範囲プレビュー／全滅後の勝敗表示と再戦案内</em></p>
 
 <p align="center">
   <img src="docs/screenshots/gameplay/03-awakening-notice.jpg" alt="味方を失った側に表示される覚醒の告知画面" width="300">
@@ -40,13 +65,6 @@ Nintendo DSi向けにC言語とBlocksDSで制作した、1台交代操作式の2
 </p>
 
 <p align="center"><em>覚醒Aの前方範囲攻撃／覚醒Bの横方向範囲攻撃</em></p>
-
-<p align="center">
-  <img src="docs/screenshots/gameplay/07-awakened-c-recovery.jpg" alt="覚醒したCの攻撃時HP回復効果" width="300">
-  <img src="docs/screenshots/gameplay/08-game-over.jpg" alt="対戦終了後の勝敗画面" width="300">
-</p>
-
-<p align="center"><em>覚醒Cの攻撃時HP回復／全滅後の勝敗表示と再戦案内</em></p>
 
 ## 制作概要
 
