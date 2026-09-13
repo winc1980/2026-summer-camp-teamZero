@@ -27,20 +27,6 @@ Nintendo DSi向けにC言語とBlocksDSで制作した、1台交代操作式の2
 | P2-B | ゴースト | ポルターガイスト | ナイトメアストーム |
 | P2-C | ヴァンパイア | ブラッドバイト | ブラッドドレイン |
 
-## melonDSで遊ぶ
-
-公開リポジトリでは生成済みのROMを配布していないため、用意済みのDev Containerで一度ビルドしてからmelonDSで起動する。
-
-1. [Docker Desktop](https://www.docker.com/products/docker-desktop/)、[Visual Studio Code](https://code.visualstudio.com/)、[Dev Containers拡張機能](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)を用意する。
-2. このリポジトリの`Code`から`Download ZIP`を選んで展開するか、Gitでcloneする。
-3. リポジトリをVisual Studio Codeで開き、コマンドパレットから`Dev Containers: Reopen in Container`を実行する。
-4. コンテナ内のターミナルで`cd /work/mygame`、`make clean`、`make`の順に実行する。
-5. [melonDS公式ダウンロードページ](https://melonds.kuribo64.net/downloads.php)から、使用しているOS向けのmelonDSを入手して起動する。
-6. melonDSの`File`から`Open ROM`を選び、生成された`mygame/mygame.nds`を開く。
-7. STARTボタンに割り当てられたキーを押してゲームを開始する。1台交代操作式のため、2人で同じキーボードまたはコントローラーを使用する。
-
-操作に反応しない場合は、melonDSの`Config`にある`Input and hotkeys`を開き、十字キー、A、B、STARTへ任意のキーボードまたはコントローラー入力を割り当てる。詳しい設定方法は[melonDS公式FAQ](https://melonds.kuribo64.net/faq.php)を参照。
-
 ## プレイ画面
 
 以下は公開版を実際に動かして撮影した画面。移動、地形、覚醒、キャラクターごとの効果、勝敗まで、一連の対戦で利用する主な画面を掲載している。
@@ -171,6 +157,20 @@ Player 1から開始し、生存している自軍ユニットを好きな順番
 - ゲーム状態に変化がないフレームでは下画面を再描画せず、ちらつきを抑制
 - 複数マス攻撃を、各マスのスプライト外周だけで一続きの枠として描画
 - IssueとPull Requestを単位として分担し、統合前にビルドと動作を確認
+
+## melonDSで遊ぶ
+
+公開リポジトリでは生成済みのROMを配布していないため、用意済みのDev Containerで一度ビルドしてからmelonDSで起動する。
+
+1. [Docker Desktop](https://www.docker.com/products/docker-desktop/)、[Visual Studio Code](https://code.visualstudio.com/)、[Dev Containers拡張機能](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)を用意する。
+2. このリポジトリの`Code`から`Download ZIP`を選んで展開するか、Gitでcloneする。
+3. リポジトリをVisual Studio Codeで開き、コマンドパレットから`Dev Containers: Reopen in Container`を実行する。
+4. コンテナ内のターミナルで`cd /work/mygame`、`make clean`、`make`の順に実行する。
+5. [melonDS公式ダウンロードページ](https://melonds.kuribo64.net/downloads.php)から、使用しているOS向けのmelonDSを入手して起動する。
+6. melonDSの`File`から`Open ROM`を選び、生成された`mygame/mygame.nds`を開く。
+7. STARTボタンに割り当てられたキーを押してゲームを開始する。1台交代操作式のため、2人で同じキーボードまたはコントローラーを使用する。
+
+操作に反応しない場合は、melonDSの`Config`にある`Input and hotkeys`を開き、十字キー、A、B、STARTへ任意のキーボードまたはコントローラー入力を割り当てる。詳しい設定方法は[melonDS公式FAQ](https://melonds.kuribo64.net/faq.php)を参照。
 
 ## ビルドと起動
 
